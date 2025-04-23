@@ -1,0 +1,138 @@
+.app-header {
+  background-color: #4a6ee0;
+  color: white;
+  padding: 15px 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logo {
+    a {
+      color: white;
+      text-decoration: none;
+      font-size: 24px;
+      font-weight: bold;
+    }
+  }
+  
+  .navigation {
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .cart-link, .auth-link {
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    
+    .cart-link {
+      .cart-count {
+        background-color: #ff4081;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        margin-left: 5px;
+      }
+    }
+    
+    .user-welcome {
+      margin-right: 10px;
+    }
+    
+    .logout {
+      cursor: pointer;
+    }
+  }
+  
+  .search-bar {
+    flex: 1;
+    max-width: 500px;
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 4px; // Make all corners rounded
+      font-size: 14px;
+      width: 100%;
+      
+      &:focus {
+        outline: none;
+      }
+    }
+    
+    button {
+      position: absolute;
+      right: 0;
+      padding: 10px 15px;
+      background: transparent; // Make button transparent
+      border: none;
+      cursor: pointer;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+.app-content {
+  min-height: calc(100vh - 130px);
+  padding: 20px 0;
+}
+
+.app-footer {
+  background-color: #f5f5f5;
+  padding: 20px 0;
+  text-align: center;
+  color: #666;
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    .container {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .search-bar {
+      margin: 10px 0;
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
