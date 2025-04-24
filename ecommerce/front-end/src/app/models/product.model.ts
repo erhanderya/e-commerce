@@ -1,9 +1,9 @@
 export interface Product {
-    categoryId: any;
     id?: number;
     name: string;
-    description: string;
+    description?: string;
     price: number;
-    imageUrl: string;
-    stockQuantity: number;
-} 
+    image_url?: string;
+    stock_quantity: number;
+    created_at?: Date;
+}

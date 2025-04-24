@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,
   first_name VARCHAR(50),
   last_name VARCHAR(50),
+  isAdmin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -67,3 +68,7 @@ INSERT INTO products (name, description, price, image_url, stock_quantity, categ
 ('Laptop', 'High performance laptop', 999.99, 'https://picsum.photos/200/300', 5, 1),
 ('Smartphone', 'Latest model smartphone', 699.99, 'https://picsum.photos/200/300', 10, 1),
 ('Headphones', 'Wireless noise-canceling headphones', 199.99, 'https://picsum.photos/200/300', 15, 1);
+
+-- Insert sample admin user (password: admin123)
+INSERT INTO users (username, email, password, isAdmin) VALUES
+('admin', 'admin@example.com', '$2a$10$dM1sWqIqDgwXGsAqvVpENO3NOqFqe3IJQ/l6eLZE1HtH9bGGPFn.q', true);

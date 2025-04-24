@@ -1,17 +1,12 @@
 package com.webapp.back_end.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.webapp.back_end.model.LoginRequest;
+import org.springframework.web.bind.annotation.*;
 import com.webapp.back_end.model.User;
+import com.webapp.back_end.model.LoginRequest;
 import com.webapp.back_end.service.UserService;
+import java.util.List;
 
 import jakarta.validation.Valid;
 
@@ -20,10 +15,28 @@ import jakarta.validation.Valid;
 @CrossOrigin(origins = "http://localhost:4200")
 public class UserController {
     
-    private final UserService userService;
+    @Autowired
+    private UserService userService;
     
-    public UserController(UserService userService) {
-        this.userService = userService;
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+        return ResponseEntity.ok(userService.updateUser(id, userDetails));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok().build();
     }
     
     @PostMapping("/register")
@@ -34,10 +47,5 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<User> login(@Valid @RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(userService.login(loginRequest));
-    }
-    
-    @GetMapping("/profile")
-    public ResponseEntity<User> getProfile(@RequestHeader("Authorization") String token) {
-        return ResponseEntity.ok(userService.getUserProfile(token));
     }
 }

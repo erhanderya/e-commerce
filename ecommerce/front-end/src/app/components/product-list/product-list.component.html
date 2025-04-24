@@ -23,14 +23,14 @@
     <h2>Products</h2>
     <div class="products-grid">
       <div *ngFor="let product of products" class="product-card">
-        <img [src]="product.imageUrl" [alt]="product.name">
+        <img [src]="product.image_url" [alt]="product.name">
         <h3>{{product.name}}</h3>
         <p>{{product.description}}</p>
         <p class="price">${{product.price}}</p>
-        <button *ngIf="product.stockQuantity > 0" class="add-to-cart" (click)="addToCart(product)">
+        <button *ngIf="product.stock_quantity > 0" class="add-to-cart" (click)="addToCart(product)">
           Add to Cart
         </button>
-        <p *ngIf="product.stockQuantity === 0" class="out-of-stock">
+        <p *ngIf="product.stock_quantity === 0" class="out-of-stock">
           Out of Stock
         </p>
       </div>

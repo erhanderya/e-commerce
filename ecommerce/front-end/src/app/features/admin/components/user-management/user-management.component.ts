@@ -1,0 +1,244 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { User } from '../../../../models/user.model';
+import { AuthService } from '../../../../services/auth.service';
+
+@Component({
+  selector: 'app-user-management',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  template: `
+    <div class="user-management">
+      <h2>User Management</h2>
+      
+      <div class="user-form" *ngIf="editingUser">
+        <h3>{{ editingUser.id ? 'Edit User' : 'Create User' }}</h3>
+        <form [formGroup]="userForm" (ngSubmit)="saveUser()">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" formControlName="username">
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" formControlName="email">
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" formControlName="password" 
+                   placeholder="{{ editingUser.id ? '(Leave blank to keep current)' : 'Enter password' }}">
+          </div>
+          
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="isAdmin">
+              Is Admin
+            </label>
+          </div>
+          
+          <div class="button-group">
+            <button type="submit" [disabled]="userForm.invalid || isSaving">Save</button>
+            <button type="button" (click)="cancelEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="user-list">
+        <button class="add-button" (click)="createUser()">Add New User</button>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Admin</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users">
+              <td>{{user.id}}</td>
+              <td>{{user.username}}</td>
+              <td>{{user.email}}</td>
+              <td>
+                <span [class.is-admin]="user.isAdmin">
+                  {{user.isAdmin ? 'Yes' : 'No'}}
+                </span>
+              </td>
+              <td>
+                <button (click)="editUser(user)">Edit</button>
+                <button (click)="deleteUser(user)" [disabled]="!user.id">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .user-management {
+      width: 100%;
+    }
+    .user-form {
+      background: white;
+      padding: 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .button-group {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    .add-button {
+      margin-bottom: 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f8f9fa;
+    }
+    button {
+      margin: 0 5px;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button:first-child {
+      background-color: #007bff;
+      color: white;
+    }
+    button:last-child {
+      background-color: #dc3545;
+      color: white;
+    }
+    .is-admin {
+      color: #198754;
+      font-weight: bold;
+    }
+  `]
+})
+export class UserManagementComponent implements OnInit {
+  users: User[] = [];
+  editingUser: User | null = null;
+  userForm: FormGroup;
+  isSaving = false;
+
+  constructor(
+    private authService: AuthService,
+    private fb: FormBuilder
+  ) {
+    this.userForm = this.createUserForm();
+  }
+
+  ngOnInit() {
+    this.loadUsers();
+  }
+
+  private loadUsers() {
+    this.authService.getUsers().subscribe(
+      users => this.users = users
+    );
+  }
+
+  private createUserForm(user?: User): FormGroup {
+    return this.fb.group({
+      username: [user?.username || '', [Validators.required]],
+      email: [user?.email || '', [Validators.required, Validators.email]],
+      password: ['', user?.id ? [] : [Validators.required, Validators.minLength(6)]],
+      isAdmin: [user?.isAdmin || false]
+    });
+  }
+
+  createUser() {
+    this.editingUser = {
+      username: '',
+      email: '',
+      isAdmin: false
+    };
+    this.userForm = this.createUserForm();
+  }
+
+  editUser(user: User) {
+    this.editingUser = { ...user };
+    this.userForm = this.createUserForm(user);
+  }
+
+  cancelEdit() {
+    this.editingUser = null;
+  }
+
+  saveUser() {
+    if (this.userForm.invalid || !this.editingUser) return;
+
+    this.isSaving = true;
+    const userData = {
+      ...this.editingUser,
+      ...this.userForm.value
+    };
+
+    const request = this.editingUser.id
+      ? this.authService.updateUser(this.editingUser.id, userData)
+      : this.authService.register(userData);
+
+    request.subscribe({
+      next: () => {
+        this.loadUsers();
+        this.editingUser = null;
+        this.isSaving = false;
+      },
+      error: () => {
+        this.isSaving = false;
+      }
+    });
+  }
+
+  deleteUser(user: User) {
+    if (!user.id) return;
+    
+    if (confirm('Are you sure you want to delete this user?')) {
+      this.authService.deleteUser(user.id).subscribe({
+        next: () => {
+          this.loadUsers();
+        }
+      });
+    }
+  }
+}

@@ -5,20 +5,55 @@ import org.springframework.stereotype.Service;
 import com.webapp.back_end.model.User;
 import com.webapp.back_end.model.LoginRequest;
 import com.webapp.back_end.repository.UserRepository;
+import com.webapp.back_end.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.transaction.Transactional;
+import java.util.List;
 
 @Service
 public class UserService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
     
-    @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
+        this.jwtUtil = jwtUtil;
+    }
+    
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Transactional
+    public User updateUser(Long id, User userDetails) {
+        User user = getUserById(id);
+        user.setUsername(userDetails.getUsername());
+        user.setEmail(userDetails.getEmail());
+        user.setFirstName(userDetails.getFirstName());
+        user.setLastName(userDetails.getLastName());
+        user.setIsAdmin(userDetails.getIsAdmin());
+        
+        if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        }
+        
+        return userRepository.save(user);
+    }
+    
+    @Transactional
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User not found");
+        }
+        userRepository.deleteById(id);
     }
     
     @Transactional
@@ -32,7 +67,8 @@ public class UserService {
         
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = userRepository.save(user);
-        savedUser.setToken(generateToken(savedUser));
+        String token = jwtUtil.generateToken(savedUser);
+        savedUser.setToken(token);
         return savedUser;
     }
     
@@ -44,32 +80,17 @@ public class UserService {
             throw new RuntimeException("Invalid credentials");
         }
         
-        user.setToken(generateToken(user));
+        String token = jwtUtil.generateToken(user);
+        user.setToken(token);
         return user;
     }
     
     public User getUserProfile(String token) {
-        // Remove "Bearer " prefix if present
-        String actualToken = token.startsWith("Bearer ") ? token.substring(7) : token;
-        Long userId = extractUserIdFromToken(actualToken);
-        return userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-    }
-    
-    private String generateToken(User user) {
-        // In a real application, you would use JWT or another token generation method
-        // For this example, we'll just create a simple token
-        return "token_" + user.getId() + "_" + System.currentTimeMillis();
-    }
-    
-    private Long extractUserIdFromToken(String token) {
-        // Simple token parsing for example purposes
-        // In a real application, you would properly validate and decode a JWT
-        try {
-            String[] parts = token.split("_");
-            return Long.parseLong(parts[1]);
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid token");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
         }
+        String email = jwtUtil.getEmailFromToken(token);
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

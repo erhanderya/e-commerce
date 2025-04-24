@@ -2,8 +2,8 @@ export interface User {
   id?: number;
   username: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
+  password?: string;
+  isAdmin: boolean;
   token?: string;
 }
 
@@ -18,4 +18,4 @@ export interface RegisterRequest {
   password: string;
   first_name?: string;
   last_name?: string;
-} 
+}

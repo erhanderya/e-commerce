@@ -67,6 +67,25 @@ export class AuthService {
       catchError(this.handleError)
     );
   }
+
+  // User management methods
+  getUsers(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/all`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  updateUser(id: number, user: User): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/${id}`, user).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+      catchError(this.handleError)
+    );
+  }
   
   private storeUserData(user: User): void {
     if (this.isBrowser) {

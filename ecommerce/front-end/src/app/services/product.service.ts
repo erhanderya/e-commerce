@@ -18,27 +18,27 @@ export class ProductService {
       name: 'Laptop',
       description: 'High performance laptop',
       price: 999.99,
-      imageUrl: 'https://picsum.photos/200/300',
-      stockQuantity: 5,
-      categoryId: 1
+      image_url: 'https://picsum.photos/200/300',
+      stock_quantity: 5,
+      created_at: new Date()
     },
     {
       id: 2,
       name: 'Smartphone',
       description: 'Latest model smartphone',
       price: 699.99,
-      imageUrl: 'https://picsum.photos/200/300',
-      stockQuantity: 10,
-      categoryId: 2
+      image_url: 'https://picsum.photos/200/300',
+      stock_quantity: 10,
+      created_at: new Date()
     },
     {
       id: 3,
       name: 'Headphones',
       description: 'Wireless noise-canceling headphones',
       price: 199.99,
-      imageUrl: 'https://picsum.photos/200/300',
-      stockQuantity: 15,
-      categoryId: 3
+      image_url: 'https://picsum.photos/200/300',
+      stock_quantity: 15,
+      created_at: new Date()
     }
   ];
 

@@ -24,11 +24,12 @@
         </a>
         
         <ng-container *ngIf="!currentUser; else loggedIn">
-          <a routerLink="/auth/login" class="auth-link">Login</a>
-          <a routerLink="/auth/register" class="auth-link">Register</a>
+          <a routerLink="/login" class="auth-link">Login</a>
+          <a routerLink="/register" class="auth-link">Register</a>
         </ng-container>
         
         <ng-template #loggedIn>
+          <a *ngIf="currentUser?.isAdmin" routerLink="/admin" class="auth-link">Admin Panel</a>
           <span class="user-welcome">{{ currentUser?.username }}</span>
           <a (click)="logout()" class="auth-link logout">Logout</a>
         </ng-template>

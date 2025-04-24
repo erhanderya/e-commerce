@@ -31,7 +31,7 @@ export class RegisterComponent {
     }, { validators: this.passwordMatchValidator });
   }
 
-  passwordMatchValidator(form: FormGroup) {
+  private passwordMatchValidator(form: FormGroup) {
     const password = form.get('password')?.value;
     const confirmPassword = form.get('confirmPassword')?.value;
     
@@ -40,6 +40,12 @@ export class RegisterComponent {
 
   onSubmit(): void {
     if (this.registerForm.invalid) {
+      Object.keys(this.registerForm.controls).forEach(key => {
+        const control = this.registerForm.get(key);
+        if (control?.invalid) {
+          control.markAsTouched();
+        }
+      });
       return;
     }
 
@@ -55,7 +61,10 @@ export class RegisterComponent {
         this.router.navigate(['/']);
       },
       error: (error) => {
-        this.errorMessage = error || 'Registration failed. Please try again.';
+        this.errorMessage = error?.message || 'Registration failed. Please try again.';
+        this.isLoading = false;
+      },
+      complete: () => {
         this.isLoading = false;
       }
     });

@@ -20,12 +20,14 @@ export class CartService {
     const existingCartItem = this.cartItems.find(item => item.product.id === product.id);
 
     if (existingCartItem) {
-      existingCartItem.quantity++;
-    } else {
+      if (existingCartItem.quantity < product.stock_quantity) {
+        existingCartItem.quantity++;
+        this.cartSubject.next([...this.cartItems]);
+      }
+    } else if (product.stock_quantity > 0) {
       this.cartItems.push({ product, quantity: 1 });
+      this.cartSubject.next([...this.cartItems]);
     }
-
-    this.cartSubject.next([...this.cartItems]);
   }
 
   removeFromCart(productId: number): void {
@@ -35,7 +37,7 @@ export class CartService {
 
   updateQuantity(productId: number, quantity: number): void {
     const item = this.cartItems.find(item => item.product.id === productId);
-    if (item) {
+    if (item && quantity <= item.product.stock_quantity && quantity > 0) {
       item.quantity = quantity;
       this.cartSubject.next([...this.cartItems]);
     }
@@ -57,4 +59,4 @@ export class CartService {
       return total + item.quantity;
     }, 0);
   }
-} 
+}

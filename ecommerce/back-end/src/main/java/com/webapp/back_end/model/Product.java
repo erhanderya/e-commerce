@@ -28,9 +28,9 @@ public class Product {
     @Column(nullable = false)
     private Double price;
 
-    private String imageUrl;
+    private String image_url;
 
-    private Integer stockQuantity;
+    private Integer stock_quantity;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -70,20 +70,20 @@ public class Product {
         this.price = price;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getImage_url() {
+        return image_url;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setImage_url(String image_url) {
+        this.image_url = image_url;
     }
 
-    public Integer getStockQuantity() {
-        return stockQuantity;
+    public Integer getStock_quantity() {
+        return stock_quantity;
     }
 
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
+    public void setStock_quantity(Integer stock_quantity) {
+        this.stock_quantity = stock_quantity;
     }
 
     public Category getCategory() {

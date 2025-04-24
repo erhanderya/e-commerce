@@ -29,6 +29,12 @@ export class LoginComponent {
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
+      Object.keys(this.loginForm.controls).forEach(key => {
+        const control = this.loginForm.get(key);
+        if (control?.invalid) {
+          control.markAsTouched();
+        }
+      });
       return;
     }
 
@@ -36,11 +42,18 @@ export class LoginComponent {
     this.errorMessage = '';
 
     this.authService.login(this.loginForm.value).subscribe({
-      next: () => {
-        this.router.navigate(['/']);
+      next: (user) => {
+        if (user.isAdmin) {
+          this.router.navigate(['/admin']);
+        } else {
+          this.router.navigate(['/']);
+        }
       },
       error: (error) => {
-        this.errorMessage = error || 'Login failed. Please try again.';
+        this.errorMessage = error?.message || 'Login failed. Please try again.';
+        this.isLoading = false;
+      },
+      complete: () => {
         this.isLoading = false;
       }
     });
