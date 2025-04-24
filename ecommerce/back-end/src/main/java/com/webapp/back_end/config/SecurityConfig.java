@@ -34,7 +34,10 @@ public class SecurityConfig {
             .authorizeHttpRequests((authz) -> authz
                 .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                 .requestMatchers("/api/users/all", "/api/users/{id}").hasAuthority("ADMIN")
-                .requestMatchers("/api/products/**").hasAuthority("ADMIN")
+                .requestMatchers("/api/products/**").permitAll()
+                .requestMatchers("api/categories/**").permitAll()
+                .requestMatchers("/api/orders/**").permitAll()
+                .requestMatchers("/api/cart/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
