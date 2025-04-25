@@ -15,9 +15,9 @@ import lombok.Data;
 @Entity
 @Table(name = "users")
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id") 
     private Long id;
     
     @NotBlank(message = "Username is required")
@@ -37,8 +37,11 @@ public class User {
     
     @Column(nullable = false)
     private Boolean isAdmin = false;
+
+    @Column(nullable = false)
+    private Boolean banned = false;
     
-    @Transient // This field won't be persisted in the database
+    @Transient
     private String token;
 
     public String getEmail() {
@@ -103,5 +106,13 @@ public class User {
 
     public void setIsAdmin(Boolean isAdmin) {
         this.isAdmin = isAdmin;
+    }
+
+    public Boolean getBanned() {
+        return banned;
+    }
+
+    public void setBanned(Boolean banned) {
+        this.banned = banned;
     }
 }

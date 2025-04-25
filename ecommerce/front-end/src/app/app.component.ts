@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { CartService } from './services/cart.service';
 import { AuthService } from './services/auth.service';
 import { User } from './models/user.model';
+import { get } from 'http';
 
 @Component({
   selector: 'app-root',
@@ -33,6 +34,14 @@ export class AppComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
     });
+
+    if (this.authService.isLoggedIn()) {
+      if(this.currentUser?.banned) { 
+        alert('Your account has been banned. Please contact support.');
+        this.authService.logout();
+        this.router.navigate(['/login']);
+      }
+    }
   }
 
   logout(): void {
@@ -40,6 +49,10 @@ export class AppComponent implements OnInit {
   }
 
   onSearch(): void {
+    if (this.searchQuery === '') {
+      this.router.navigate(['/']);
+    }
+
     if (this.searchQuery.trim()) {
       this.router.navigate(['/'], { 
         queryParams: { search: this.searchQuery.trim() } 

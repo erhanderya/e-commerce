@@ -32,6 +32,23 @@ public class UserService {
             .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    public User login(LoginRequest loginRequest) {
+        User user = userRepository.findByEmail(loginRequest.getEmail())
+            .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+            
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid credentials");
+        }
+
+        if (user.getBanned()) {
+            throw new RuntimeException("Your account has been banned. Please contact support.");
+        }
+        
+        String token = jwtUtil.generateToken(user);
+        user.setToken(token);
+        return user;
+    }
+
     @Transactional
     public User updateUser(Long id, User userDetails) {
         User user = getUserById(id);
@@ -40,11 +57,19 @@ public class UserService {
         user.setFirstName(userDetails.getFirstName());
         user.setLastName(userDetails.getLastName());
         user.setIsAdmin(userDetails.getIsAdmin());
+        user.setBanned(userDetails.getBanned());
         
         if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
         }
         
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User toggleUserBan(Long id) {
+        User user = getUserById(id);
+        user.setBanned(!user.getBanned());
         return userRepository.save(user);
     }
     
@@ -70,19 +95,6 @@ public class UserService {
         String token = jwtUtil.generateToken(savedUser);
         savedUser.setToken(token);
         return savedUser;
-    }
-    
-    public User login(LoginRequest loginRequest) {
-        User user = userRepository.findByEmail(loginRequest.getEmail())
-            .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-            
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
-        }
-        
-        String token = jwtUtil.generateToken(user);
-        user.setToken(token);
-        return user;
     }
     
     public User getUserProfile(String token) {

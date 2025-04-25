@@ -11,7 +11,7 @@ import { AuthService } from '../../../../services/auth.service';
   template: `
     <div class="user-management">
       <h2>User Management</h2>
-      
+      <button class="add-button" (click)="createUser()">Add New User</button>
       <div class="user-form" *ngIf="editingUser">
         <h3>{{ editingUser.id ? 'Edit User' : 'Create User' }}</h3>
         <form [formGroup]="userForm" (ngSubmit)="saveUser()">
@@ -37,6 +37,13 @@ import { AuthService } from '../../../../services/auth.service';
               Is Admin
             </label>
           </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="banned">
+              Is Banned
+            </label>
+          </div>
           
           <div class="button-group">
             <button type="submit" [disabled]="userForm.invalid || isSaving">Save</button>
@@ -46,7 +53,6 @@ import { AuthService } from '../../../../services/auth.service';
       </div>
 
       <div class="user-list">
-        <button class="add-button" (click)="createUser()">Add New User</button>
         <table>
           <thead>
             <tr>
@@ -54,6 +60,7 @@ import { AuthService } from '../../../../services/auth.service';
               <th>Username</th>
               <th>Email</th>
               <th>Admin</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -68,7 +75,15 @@ import { AuthService } from '../../../../services/auth.service';
                 </span>
               </td>
               <td>
+                <span [class.is-banned]="user.banned">
+                  {{user.banned ? 'Banned' : 'Active'}}
+                </span>
+              </td>
+              <td>
                 <button (click)="editUser(user)">Edit</button>
+                <button (click)="toggleBan(user)" [class.unban-button]="user.banned">
+                  {{user.banned ? 'Unban' : 'Ban'}}
+                </button>
                 <button (click)="deleteUser(user)" [disabled]="!user.id">Delete</button>
               </td>
             </tr>
@@ -110,7 +125,9 @@ import { AuthService } from '../../../../services/auth.service';
     }
     .add-button {
       margin-bottom: 20px;
-      background-color: #28a745;
+      float: right;
+      margin-right: 20px;
+      background-color: rgb(23, 222, 123);
       color: white;
       border: none;
       padding: 8px 16px;
@@ -145,12 +162,22 @@ import { AuthService } from '../../../../services/auth.service';
       background-color: #007bff;
       color: white;
     }
+    button.unban-button {
+      background-color: #28a745;
+    }
+    button:not(.unban-button):nth-child(2) {
+      background-color: #dc3545;
+    }
     button:last-child {
       background-color: #dc3545;
       color: white;
     }
     .is-admin {
       color: #198754;
+      font-weight: bold;
+    }
+    .is-banned {
+      color: #dc3545;
       font-weight: bold;
     }
   `]
@@ -183,7 +210,8 @@ export class UserManagementComponent implements OnInit {
       username: [user?.username || '', [Validators.required]],
       email: [user?.email || '', [Validators.required, Validators.email]],
       password: ['', user?.id ? [] : [Validators.required, Validators.minLength(6)]],
-      isAdmin: [user?.isAdmin || false]
+      isAdmin: [user?.isAdmin || false],
+      banned: [user?.banned || false]
     });
   }
 
@@ -191,7 +219,8 @@ export class UserManagementComponent implements OnInit {
     this.editingUser = {
       username: '',
       email: '',
-      isAdmin: false
+      isAdmin: false,
+      banned: false
     };
     this.userForm = this.createUserForm();
   }
@@ -199,6 +228,17 @@ export class UserManagementComponent implements OnInit {
   editUser(user: User) {
     this.editingUser = { ...user };
     this.userForm = this.createUserForm(user);
+  }
+
+  toggleBan(user: User) {
+    if (!user.id) return;
+    
+    const updatedUser = { ...user, banned: !user.banned };
+    this.authService.updateUser(user.id, updatedUser).subscribe({
+      next: () => {
+        this.loadUsers();
+      }
+    });
   }
 
   cancelEdit() {

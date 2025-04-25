@@ -43,6 +43,12 @@ export class LoginComponent {
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (user) => {
+        if (user.banned) {
+          this.errorMessage = 'Your account has been banned. Please contact support.';
+          this.authService.logout();
+          return;
+        }
+        
         if (user.isAdmin) {
           this.router.navigate(['/admin']);
         } else {

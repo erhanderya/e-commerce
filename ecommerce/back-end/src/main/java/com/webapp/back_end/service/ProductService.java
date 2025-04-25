@@ -15,6 +15,9 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
     
+    @Autowired
+    private CategoryService categoryService;
+    
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
@@ -24,6 +27,10 @@ public class ProductService {
     }
     
     public Product createProduct(Product product) {
+        if (product.getCategory_id() != null) {
+            categoryService.getCategoryById(product.getCategory_id())
+                .ifPresent(product::setCategory);
+        }
         return productRepository.save(product);
     }
     
@@ -36,10 +43,22 @@ public class ProductService {
     }
 
     public Product updateProduct(Long id, Product product) {
-        if (productRepository.existsById(id)) {
-            product.setId(id);
-            return productRepository.save(product);
-        }
-        return null;
+        return productRepository.findById(id).map(existingProduct -> {
+            existingProduct.setName(product.getName());
+            existingProduct.setDescription(product.getDescription());
+            existingProduct.setPrice(product.getPrice());
+            existingProduct.setImage_url(product.getImage_url());
+            existingProduct.setStock_quantity(product.getStock_quantity());
+            
+            // Handle category update
+            if (product.getCategory_id() != null) {
+                categoryService.getCategoryById(product.getCategory_id())
+                    .ifPresent(existingProduct::setCategory);
+            } else {
+                existingProduct.setCategory(null);
+            }
+            
+            return productRepository.save(existingProduct);
+        }).orElse(null);
     }
 }

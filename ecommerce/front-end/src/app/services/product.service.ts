@@ -71,7 +71,11 @@ export class ProductService {
   }
 
   updateProduct(product: Product): Observable<Product> {
-    return this.http.put<Product>(`${this.apiUrl}/products/${product.id}`, product).pipe(
+    const productData = {
+      ...product,
+      category_id: product.category_id ? Number(product.category_id) : null
+    };
+    return this.http.put<Product>(`${this.apiUrl}/products/${product.id}`, productData).pipe(
       catchError(this.handleError)
     );
   }

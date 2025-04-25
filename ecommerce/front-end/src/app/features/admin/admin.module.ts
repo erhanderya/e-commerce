@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { AdminDashboardComponent } from './components/admin-dashboard/admin-dashboard.component';
 import { ProductManagementComponent } from './components/product-management/product-management.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
+import { CategoryManagementComponent } from './components/category-management/category-management.component';
 import { ReactiveFormsModule } from '@angular/forms';
 
 const routes: Routes = [
@@ -13,7 +14,8 @@ const routes: Routes = [
     children: [
       { path: '', redirectTo: 'products', pathMatch: 'full' },
       { path: 'products', component: ProductManagementComponent },
-      { path: 'users', component: UserManagementComponent }
+      { path: 'users', component: UserManagementComponent },
+      { path: 'categories', component: CategoryManagementComponent }
     ]
   }
 ];
@@ -25,7 +27,8 @@ const routes: Routes = [
     ReactiveFormsModule,
     AdminDashboardComponent,
     ProductManagementComponent,
-    UserManagementComponent
+    UserManagementComponent,
+    CategoryManagementComponent
   ]
 })
 export class AdminModule { }

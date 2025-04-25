@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Product } from '../../../../models/product.model';
+import { Category } from '../../../../models/category.model';
 import { ProductService } from '../../../../services/product.service';
 
 @Component({
@@ -11,7 +12,7 @@ import { ProductService } from '../../../../services/product.service';
   template: `
     <div class="product-management">
       <h2>Product Management</h2>
-      
+      <button class="add-button" (click)="createProduct()">Add New Product</button>
       <div class="product-form" *ngIf="editingProduct">
         <h3>{{ editingProduct.id ? 'Edit Product' : 'Create Product' }}</h3>
         <form [formGroup]="productForm" (ngSubmit)="saveProduct()">
@@ -39,6 +40,16 @@ import { ProductService } from '../../../../services/product.service';
             <label for="stock_quantity">Stock Quantity</label>
             <input type="number" id="stock_quantity" formControlName="stock_quantity">
           </div>
+
+          <div class="form-group">
+            <label for="category_id">Category</label>
+            <select id="category_id" formControlName="category_id">
+              <option [ngValue]="null">Select a category</option>
+              <option *ngFor="let category of categories" [value]="category.id">
+                {{category.name}}
+              </option>
+            </select>
+          </div>
           
           <div class="button-group">
             <button type="submit" [disabled]="productForm.invalid || isSaving">Save</button>
@@ -48,7 +59,6 @@ import { ProductService } from '../../../../services/product.service';
       </div>
 
       <div class="product-list">
-        <button class="add-button" (click)="createProduct()">Add New Product</button>
         <table>
           <thead>
             <tr>
@@ -56,7 +66,7 @@ import { ProductService } from '../../../../services/product.service';
               <th>Name</th>
               <th>Price</th>
               <th>Stock</th>
-              <th>Created At</th>
+              <th>Category</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -66,7 +76,7 @@ import { ProductService } from '../../../../services/product.service';
               <td>{{product.name}}</td>
               <td>{{product.price | currency}}</td>
               <td>{{product.stock_quantity}}</td>
-              <td>{{product.created_at | date:'medium'}}</td>
+              <td>{{getCategoryName(product.category_id)}}</td>
               <td>
                 <button (click)="editProduct(product)">Edit</button>
                 <button (click)="deleteProduct(product)" [disabled]="!product.id">Delete</button>
@@ -77,7 +87,7 @@ import { ProductService } from '../../../../services/product.service';
       </div>
     </div>
   `,
-  styles: [`
+  styles: [`    
     .product-management {
       width: 100%;
     }
@@ -95,8 +105,10 @@ import { ProductService } from '../../../../services/product.service';
       display: block;
       margin-bottom: 5px;
     }
-    .form-group input,
-    .form-group textarea {
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group textarea,
+    .form-group select {
       width: 100%;
       padding: 8px;
       border: 1px solid #ddd;
@@ -113,7 +125,9 @@ import { ProductService } from '../../../../services/product.service';
     }
     .add-button {
       margin-bottom: 20px;
-      background-color: #28a745;
+      float: right;
+      margin-right: 20px;
+      background-color: rgb(23, 222, 123);
       color: white;
       border: none;
       padding: 8px 16px;
@@ -156,6 +170,7 @@ import { ProductService } from '../../../../services/product.service';
 })
 export class ProductManagementComponent implements OnInit {
   products: Product[] = [];
+  categories: Category[] = [];
   editingProduct: Product | null = null;
   productForm: FormGroup;
   isSaving = false;
@@ -169,6 +184,7 @@ export class ProductManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadProducts();
+    this.loadCategories();
   }
 
   private createProductForm(): FormGroup {
@@ -177,14 +193,31 @@ export class ProductManagementComponent implements OnInit {
       description: [''],
       price: ['', [Validators.required, Validators.min(0)]],
       image_url: [''],
-      stock_quantity: ['', [Validators.required, Validators.min(0)]]
+      stock_quantity: ['', [Validators.required, Validators.min(0)]],
+      category_id: [null, [Validators.required]]
     });
   }
 
   loadProducts() {
     this.productService.getProducts().subscribe(
       products => this.products = products
+
     );
+    
+  
+    
+  }
+
+  loadCategories() {
+    this.productService.getCategories().subscribe(
+      categories => this.categories = categories
+    );
+  }
+
+  getCategoryName(categoryId: number | undefined): string {
+    if (!categoryId) return 'No Category';
+    const category = this.categories.find(c => c.id === categoryId);
+    return category ? category.name : 'Unknown Category';
   }
 
   createProduct() {
@@ -199,7 +232,8 @@ export class ProductManagementComponent implements OnInit {
       description: product.description,
       price: product.price,
       image_url: product.image_url,
-      stock_quantity: product.stock_quantity
+      stock_quantity: product.stock_quantity,
+      category_id: product.category_id // Convert to string for select element
     });
   }
 
@@ -211,23 +245,39 @@ export class ProductManagementComponent implements OnInit {
   saveProduct() {
     if (this.productForm.invalid || !this.editingProduct) return;
     
-    this.isSaving = true;
-    const productData = { ...this.editingProduct, ...this.productForm.value };
+    const productData = {
+      ...this.editingProduct,
+      ...this.productForm.value
+    };
     
+    this.editingProduct.category_id = productData.category_id; // Update the editingProduct with the selected category_id
+
+    console.log("editingProduct", this.editingProduct.category_id);
+    console.log("prductData", productData.category_id);
+    this.isSaving = true;
+
     const request = productData.id
       ? this.productService.updateProduct(productData)
       : this.productService.createProduct(productData);
 
+    productData.category_id = this.editingProduct.category_id; // Ensure category_id is set correctly
+    
     request.subscribe({
       next: () => {
         this.loadProducts();
         this.editingProduct = null;
+        this.productForm.reset();
         this.isSaving = false;
+        console.log('Product saved successfully!', productData.category_id);
+        
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error saving product:', error);
         this.isSaving = false;
       }
     });
+
+    console.log(this.productForm.value.category_id);
   }
 
   deleteProduct(product: Product) {

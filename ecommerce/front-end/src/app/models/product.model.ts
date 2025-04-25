@@ -6,4 +6,5 @@ export interface Product {
     image_url?: string;
     stock_quantity: number;
     created_at?: Date;
+    category_id?: number;
 }

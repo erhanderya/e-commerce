@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Data;
 
 @Data
@@ -36,6 +37,17 @@ public class Product {
     @JoinColumn(name = "category_id")
     @JsonIgnoreProperties("products")
     private Category category;
+
+    @Transient
+    private Long category_id;
+
+    public Long getCategory_id() {
+        return category != null ? category.getId() : category_id;
+    }
+
+    public void setCategory_id(Long category_id) {
+        this.category_id = category_id;
+    }
 
     // Getters and Setters
     public Long getId() {
