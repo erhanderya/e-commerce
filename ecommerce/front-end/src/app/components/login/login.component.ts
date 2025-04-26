@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { AlertService } from '../../services/alert.service'; // Import AlertService
 
 @Component({
   selector: 'app-login',
@@ -13,13 +14,13 @@ import { AuthService } from '../../services/auth.service';
 })
 export class LoginComponent {
   loginForm: FormGroup;
-  errorMessage: string = '';
   isLoading: boolean = false;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private alertService: AlertService // Inject AlertService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -35,20 +36,17 @@ export class LoginComponent {
           control.markAsTouched();
         }
       });
+      this.alertService.warn('Please fill in all required fields correctly.'); // Show warning if form is invalid
       return;
     }
 
     this.isLoading = true;
-    this.errorMessage = '';
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (user) => {
-        if (user.banned) {
-          this.errorMessage = 'Your account has been banned. Please contact support.';
-          this.authService.logout();
-          return;
-        }
-        
+        this.isLoading = false;
+        // Show success alert
+        this.alertService.success(`Welcome back, ${user.username}!`);
         if (user.isAdmin) {
           this.router.navigate(['/admin']);
         } else {
@@ -56,11 +54,15 @@ export class LoginComponent {
         }
       },
       error: (error) => {
-        this.errorMessage = error?.message || 'Login failed. Please try again.';
         this.isLoading = false;
-      },
-      complete: () => {
-        this.isLoading = false;
+        let message = 'Login failed. Please try again.'; // Default error message
+        if (error?.error?.message) {
+          message = error.error.message;
+        } else if (error?.message) {
+          message = error.message;
+        }
+        // Show error alert
+        this.alertService.error(message);
       }
     });
   }

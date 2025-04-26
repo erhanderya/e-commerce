@@ -33,20 +33,28 @@ public class UserService {
     }
 
     public User login(LoginRequest loginRequest) {
-        User user = userRepository.findByEmail(loginRequest.getEmail())
-            .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-            
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
-        }
+        try {
+            User user = userRepository.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found with this email"));
+                
+            if (user.getBanned()) {
+                throw new RuntimeException("Your account has been banned. Please contact support.");
+            }
 
-        if (user.getBanned()) {
-            throw new RuntimeException("Your account has been banned. Please contact support.");
+            // Debug password comparison
+            boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
+            if (!passwordMatches) {
+                throw new RuntimeException("Incorrect password");
+            }
+            
+            String token = jwtUtil.generateToken(user);
+            user.setToken(token);
+            return user;
+        } catch (Exception e) {
+            // Log the error for debugging
+            System.out.println("Login error: " + e.getMessage());
+            throw e;
         }
-        
-        String token = jwtUtil.generateToken(user);
-        user.setToken(token);
-        return user;
     }
 
     @Transactional

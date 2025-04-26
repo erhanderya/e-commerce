@@ -5,6 +5,7 @@ import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { Category } from '../../models/category.model';
+import { AlertService } from '../../services/alert.service'; // Import AlertService
 
 @Component({
   selector: 'app-product-list',
@@ -22,7 +23,8 @@ export class ProductListComponent implements OnInit {
   constructor(
     private productService: ProductService,
     private cartService: CartService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private alertService: AlertService // Inject AlertService
   ) { }
 
   ngOnInit(): void {
@@ -102,6 +104,25 @@ export class ProductListComponent implements OnInit {
   }
 
   addToCart(product: Product): void {
-    this.cartService.addToCart(product);
+    if (!product || product.id === undefined) {
+      console.error('Cannot add product without ID to cart:', product);
+      // Use AlertService for error
+      this.alertService.error('Could not add product to cart. Product information is missing.');
+      return;
+    }
+
+    console.log('Attempting to add product to cart:', product);
+    this.cartService.addToCart(product).subscribe({
+      next: (cart) => {
+        // Use AlertService for success
+        this.alertService.success(`'${product.name}' added to cart successfully!`);
+      },
+      error: (error) => {
+        console.error('Error adding product to cart:', error);
+        // Use AlertService for error
+        const message = error?.error?.message || error?.message || 'Please try again.';
+        this.alertService.error(`Failed to add product to cart: ${message}`);
+      }
+    });
   }
 }

@@ -35,10 +35,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                 .requestMatchers("/api/users/all", "/api/users/{id}").permitAll()
                 .requestMatchers("/api/products/**").permitAll()
-                .requestMatchers("api/categories/**").permitAll()
+                .requestMatchers("/api/categories/**").permitAll()
                 .requestMatchers("/api/orders/**").permitAll()
-                .requestMatchers("/api/cart/**").permitAll()
-                .requestMatchers("admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/cart/**").authenticated() 
+                .requestMatchers("/admin/**").hasAnyAuthority("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

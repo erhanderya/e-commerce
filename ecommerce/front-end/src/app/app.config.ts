@@ -2,23 +2,14 @@ import { ApplicationConfig, importProvidersFrom, PLATFORM_ID, inject } from '@an
 import { provideRouter } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { provideClientHydration } from '@angular/platform-browser';
-import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
-
+import { provideHttpClient, withInterceptors, withFetch, HttpInterceptorFn } from '@angular/common/http';
 import { routes } from './app.routes';
+import { AuthService } from './services/auth.service';
 
-// Auth interceptor function with platform check
-export function authInterceptor(req: any, next: any) {
-  const platformId = inject(PLATFORM_ID);
-  const isBrowser = isPlatformBrowser(platformId);
-  
-  // Only access localStorage in browser environment
-  let token = null;
-  if (isBrowser) {
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-      token = JSON.parse(user).token;
-    }
-  }
+// Auth interceptor function using AuthService
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const token = authService.getToken();
   
   // Add token to headers if available
   if (token) {
@@ -29,7 +20,7 @@ export function authInterceptor(req: any, next: any) {
   }
   
   return next(req);
-}
+};
 
 export const appConfig: ApplicationConfig = {
   providers: [

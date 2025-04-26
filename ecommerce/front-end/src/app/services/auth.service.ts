@@ -47,11 +47,24 @@ export class AuthService {
   }
   
   login(credentials: LoginRequest): Observable<User> {
-    return this.http.post<User>(`${this.apiUrl}/login`, credentials).pipe(
+    const loginData = {
+      email: credentials.email.trim(),
+      password: credentials.password
+    };
+    
+    return this.http.post<User>(`${this.apiUrl}/login`, loginData).pipe(
       tap(user => {
         this.storeUserData(user);
       }),
-      catchError(this.handleError)
+      catchError(error => {
+        console.error('Login error:', error);
+        if (error.error && typeof error.error === 'string') {
+          return throwError(() => ({ message: error.error }));
+        }
+        return throwError(() => ({ 
+          message: error.error?.message || 'Login failed. Please check your credentials and try again.'
+        }));
+      })
     );
   }
   
