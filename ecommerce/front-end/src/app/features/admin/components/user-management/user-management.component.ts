@@ -84,6 +84,7 @@ import { AuthService } from '../../../../services/auth.service';
                 <button (click)="toggleBan(user)" [class.unban-button]="user.banned">
                   {{user.banned ? 'Unban' : 'Ban'}}
                 </button>
+                <button (click)="makeAdmin(user)" class="make-admin-button" [class.admin-button]="user.isAdmin">{{user.isAdmin ? 'Quit Admin' : 'Make Admin'}}</button>
                 <button (click)="deleteUser(user)" [disabled]="!user.id">Delete</button>
               </td>
             </tr>
@@ -164,14 +165,32 @@ import { AuthService } from '../../../../services/auth.service';
     }
     button.unban-button {
       background-color: #28a745;
+      color: white;
     }
     button:not(.unban-button):nth-child(2) {
       background-color: #dc3545;
+      color: white;
     }
     button:last-child {
       background-color: #dc3545;
       color: white;
     }
+    button.admin-button {
+      background-color:rgb(255, 0, 0);
+      color: white;
+    }
+    button.admin-button:hover {
+      background-color:rgb(255, 76, 76);
+    }
+    .make-admin-button {
+      background-color: rgb(49, 247, 0);
+      color: white;
+    }
+    .make-admin-button:hover {
+      background-color: rgb(130, 253, 99);
+      color: white;
+    }
+    
     .is-admin {
       color: #198754;
       font-weight: bold;
@@ -234,6 +253,17 @@ export class UserManagementComponent implements OnInit {
     if (!user.id) return;
     
     const updatedUser = { ...user, banned: !user.banned };
+    this.authService.updateUser(user.id, updatedUser).subscribe({
+      next: () => {
+        this.loadUsers();
+      }
+    });
+  }
+
+  makeAdmin(user: User) {
+    if (!user.id) return;
+    
+    const updatedUser = { ...user, isAdmin: !user.isAdmin };
     this.authService.updateUser(user.id, updatedUser).subscribe({
       next: () => {
         this.loadUsers();

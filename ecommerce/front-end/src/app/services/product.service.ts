@@ -11,44 +11,32 @@ import { Category } from '../models/category.model';
 export class ProductService {
   private apiUrl = `http://localhost:8080/api`;
   
-  // Keep the mock products for fallback
   private mockProducts: Product[] = [
     {
       id: 1,
-      name: 'Laptop',
-      description: 'High performance laptop',
-      price: 999.99,
-      image_url: 'https://picsum.photos/200/300',
-      stock_quantity: 5,
-      created_at: new Date()
+      name: 'Mock Product 1',
+      description: 'This is a mock product description.',
+      price: 19.99,
+      image_url: 'https://via.placeholder.com/150',
+      stock_quantity: 100,
+      category_id: 1
     },
     {
       id: 2,
-      name: 'Smartphone',
-      description: 'Latest model smartphone',
-      price: 699.99,
-      image_url: 'https://picsum.photos/200/300',
-      stock_quantity: 10,
-      created_at: new Date()
-    },
-    {
-      id: 3,
-      name: 'Headphones',
-      description: 'Wireless noise-canceling headphones',
-      price: 199.99,
-      image_url: 'https://picsum.photos/200/300',
-      stock_quantity: 15,
-      created_at: new Date()
+      name: 'Mock Product 2',
+      description: 'This is another mock product description.',
+      price: 29.99,
+      image_url: 'https://via.placeholder.com/150',
+      stock_quantity: 50,
+      category_id: 2
     }
   ];
-
   constructor(private http: HttpClient) { }
 
   getProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(`${this.apiUrl}/products`).pipe(
       catchError(error => {
         console.error('Error fetching products from API:', error);
-        console.log('Falling back to mock data');
         return of(this.mockProducts);
       })
     );
@@ -65,16 +53,26 @@ export class ProductService {
   }
 
   createProduct(product: Product): Observable<Product> {
-    return this.http.post<Product>(`${this.apiUrl}/products`, product).pipe(
+    const productData = {
+      ...product,
+      category_id: product.category_id ? Number(product.category_id) : null
+    };
+    return this.http.post<Product>(`${this.apiUrl}/products`, productData).pipe(
       catchError(this.handleError)
     );
   }
 
   updateProduct(product: Product): Observable<Product> {
     const productData = {
-      ...product,
-      category_id: product.category_id ? Number(product.category_id) : null
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      image_url: product.image_url,
+      stock_quantity: product.stock_quantity,
+      category_id: product.category_id !== undefined ? Number(product.category_id) : null
     };
+
     return this.http.put<Product>(`${this.apiUrl}/products/${product.id}`, productData).pipe(
       catchError(this.handleError)
     );

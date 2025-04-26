@@ -45,7 +45,7 @@ import { ProductService } from '../../../../services/product.service';
             <label for="category_id">Category</label>
             <select id="category_id" formControlName="category_id">
               <option [ngValue]="null">Select a category</option>
-              <option *ngFor="let category of categories" [value]="category.id">
+              <option *ngFor="let category of categories" [ngValue]="category.id">
                 {{category.name}}
               </option>
             </select>
@@ -166,6 +166,22 @@ import { ProductService } from '../../../../services/product.service';
       background-color: #dc3545;
       color: white;
     }
+    .debug-info {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .debug-controls {
+      margin-top: 20px;
+    }
+    .debug-controls button {
+      background-color: #6c757d;
+      color: white;
+    }
   `]
 })
 export class ProductManagementComponent implements OnInit {
@@ -174,6 +190,7 @@ export class ProductManagementComponent implements OnInit {
   editingProduct: Product | null = null;
   productForm: FormGroup;
   isSaving = false;
+  debugInfo = false;
 
   constructor(
     private productService: ProductService,
@@ -200,12 +217,11 @@ export class ProductManagementComponent implements OnInit {
 
   loadProducts() {
     this.productService.getProducts().subscribe(
-      products => this.products = products
-
+      products => {
+        this.products = products;
+        console.log('Loaded products:', this.products);
+      }
     );
-    
-  
-    
   }
 
   loadCategories() {
@@ -214,7 +230,7 @@ export class ProductManagementComponent implements OnInit {
     );
   }
 
-  getCategoryName(categoryId: number | undefined): string {
+  getCategoryName(categoryId: number | null | undefined): string {
     if (!categoryId) return 'No Category';
     const category = this.categories.find(c => c.id === categoryId);
     return category ? category.name : 'Unknown Category';
@@ -226,15 +242,31 @@ export class ProductManagementComponent implements OnInit {
   }
 
   editProduct(product: Product) {
-    this.editingProduct = { ...product };
+    console.log('Original product to edit:', product);
+    
+    // Create a clean copy with explicitly typed category_id
+    this.editingProduct = { 
+      ...product,
+      // Ensure category_id is a number or null
+      category_id: product.category_id !== undefined ? Number(product.category_id) : null
+    };
+    
+    // Reset form before setting values to avoid validation issues
+    this.productForm.reset();
+    
+    // Use patchValue with explicit numeric value for category_id
     this.productForm.patchValue({
       name: product.name,
       description: product.description,
       price: product.price,
       image_url: product.image_url,
       stock_quantity: product.stock_quantity,
-      category_id: product.category_id // Convert to string for select element
+      // Ensure we're setting a number value, not a string
+      category_id: product.category_id !== undefined ? Number(product.category_id) : null
     });
+    
+    console.log('Editing product with form values:', this.productForm.value);
+    console.log('Category ID type:', typeof this.productForm.value.category_id);
   }
 
   cancelEdit() {
@@ -243,41 +275,42 @@ export class ProductManagementComponent implements OnInit {
   }
 
   saveProduct() {
-    if (this.productForm.invalid || !this.editingProduct) return;
-    
-    const productData = {
-      ...this.editingProduct,
-      ...this.productForm.value
-    };
-    
-    this.editingProduct.category_id = productData.category_id; // Update the editingProduct with the selected category_id
+    if (this.productForm.invalid || !this.editingProduct) {
+      return;
+    }
 
-    console.log("editingProduct", this.editingProduct.category_id);
-    console.log("prductData", productData.category_id);
     this.isSaving = true;
+
+    const formValues = this.productForm.value;
+    const productData: Product = {
+      id: this.editingProduct.id,
+      name: formValues.name,
+      description: formValues.description,
+      price: Number(formValues.price),
+      image_url: formValues.image_url,
+      stock_quantity: Number(formValues.stock_quantity),
+      category_id: formValues.category_id !== undefined && formValues.category_id !== null 
+        ? Number(formValues.category_id) 
+        : null
+    };
 
     const request = productData.id
       ? this.productService.updateProduct(productData)
       : this.productService.createProduct(productData);
-
-    productData.category_id = this.editingProduct.category_id; // Ensure category_id is set correctly
     
     request.subscribe({
-      next: () => {
+      next: (savedProduct) => {
+        console.log('Product saved successfully:', savedProduct);
         this.loadProducts();
         this.editingProduct = null;
         this.productForm.reset();
         this.isSaving = false;
-        console.log('Product saved successfully!', productData.category_id);
-        
       },
       error: (error) => {
         console.error('Error saving product:', error);
         this.isSaving = false;
       }
     });
-
-    console.log(this.productForm.value.category_id);
   }
 
   deleteProduct(product: Product) {

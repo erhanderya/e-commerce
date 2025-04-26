@@ -33,11 +33,12 @@ public class SecurityConfig {
             .and()
             .authorizeHttpRequests((authz) -> authz
                 .requestMatchers("/api/users/register", "/api/users/login").permitAll()
-                .requestMatchers("/api/users/all", "/api/users/{id}").hasAuthority("ADMIN")
+                .requestMatchers("/api/users/all", "/api/users/{id}").permitAll()
                 .requestMatchers("/api/products/**").permitAll()
                 .requestMatchers("api/categories/**").permitAll()
                 .requestMatchers("/api/orders/**").permitAll()
                 .requestMatchers("/api/cart/**").permitAll()
+                .requestMatchers("admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
