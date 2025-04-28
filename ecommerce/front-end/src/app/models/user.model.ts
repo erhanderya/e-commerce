@@ -1,9 +1,17 @@
+export enum UserRole {
+  USER = 'USER',
+  SELLER = 'SELLER',
+  ADMIN = 'ADMIN'
+}
+
 export interface User {
   id?: number;
   username: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   password?: string;
-  isAdmin: boolean;
+  role: UserRole;
   banned: boolean;
   token?: string;
 }
@@ -17,6 +25,7 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  first_name?: string;
-  last_name?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: UserRole;
 }

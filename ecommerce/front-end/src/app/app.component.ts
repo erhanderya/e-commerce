@@ -4,14 +4,14 @@ import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CartService } from './services/cart.service';
 import { AuthService } from './services/auth.service';
-import { User } from './models/user.model';
-import { AlertService } from './services/alert.service'; // Import AlertService
-import { AlertComponent } from './components/alert/alert.component'; // Import AlertComponent
+import { User, UserRole } from './models/user.model'; // Import UserRole enum
+import { AlertService } from './services/alert.service';
+import { AlertComponent } from './components/alert/alert.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, FormsModule, AlertComponent], // Add AlertComponent here
+  imports: [CommonModule, RouterOutlet, RouterLink, FormsModule, AlertComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -25,7 +25,7 @@ export class AppComponent implements OnInit {
     private cartService: CartService,
     private authService: AuthService,
     private router: Router,
-    private alertService: AlertService // Inject AlertService
+    private alertService: AlertService
   ) {}
 
   ngOnInit(): void {
@@ -45,6 +45,15 @@ export class AppComponent implements OnInit {
         // No need to navigate here, logout likely handles redirection or the guard will
       }
     }
+  }
+
+  // Add methods to check user roles
+  isAdmin(): boolean {
+    return this.currentUser?.role === UserRole.ADMIN;
+  }
+
+  isSeller(): boolean {
+    return this.currentUser?.role === UserRole.SELLER || this.currentUser?.role === UserRole.ADMIN;
   }
 
   logout(): void {

@@ -38,6 +38,12 @@ public class Product {
     @JsonIgnoreProperties("products")
     private Category category;
 
+    // Add seller relationship
+    @ManyToOne
+    @JoinColumn(name = "seller_id", nullable = false) // Assuming a product must have a seller
+    @JsonIgnoreProperties({"password", "cart", "token", "banned", "role"}) // Avoid exposing sensitive seller details
+    private User seller;
+
     @Transient
     private Long category_id;
 
@@ -104,5 +110,14 @@ public class Product {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    // Getter and Setter for seller
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
     }
 }

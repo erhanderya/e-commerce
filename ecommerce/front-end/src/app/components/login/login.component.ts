@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-import { AlertService } from '../../services/alert.service'; // Import AlertService
+import { AlertService } from '../../services/alert.service';
+import { UserRole } from '../../models/user.model'; // Import the UserRole enum
 
 @Component({
   selector: 'app-login',
@@ -15,6 +16,7 @@ import { AlertService } from '../../services/alert.service'; // Import AlertServ
 export class LoginComponent {
   loginForm: FormGroup;
   isLoading: boolean = false;
+  errorMessage: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -47,8 +49,12 @@ export class LoginComponent {
         this.isLoading = false;
         // Show success alert
         this.alertService.success(`Welcome back, ${user.username}!`);
-        if (user.isAdmin) {
+        
+        // Use role-based routing
+        if (user.role === UserRole.ADMIN) {
           this.router.navigate(['/admin']);
+        } else if (user.role === UserRole.SELLER) {
+          this.router.navigate(['/seller']);
         } else {
           this.router.navigate(['/']);
         }

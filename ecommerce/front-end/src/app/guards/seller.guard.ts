@@ -5,12 +5,12 @@ import { AuthService } from '../services/auth.service';
 @Injectable({
   providedIn: 'root'
 })
-export class AdminGuard implements CanActivate {
+export class SellerGuard implements CanActivate {
   constructor(private authService: AuthService, private router: Router) {}
 
   canActivate(): boolean {
-    // Use the isAdmin() method from AuthService which checks for ADMIN role
-    if (this.authService.isAdmin()) {
+    // Allow if user is a SELLER or ADMIN
+    if (this.authService.isSellerOrAdmin()) {
       return true;
     }
     

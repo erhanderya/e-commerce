@@ -9,7 +9,7 @@
           <input
             type="text"
             id="firstName"
-            formControlName="first_name"
+            formControlName="firstName"
             placeholder="Enter your first name"
           >
         </div>
@@ -19,7 +19,7 @@
           <input
             type="text"
             id="lastName"
-            formControlName="last_name"
+            formControlName="lastName"
             placeholder="Enter your last name"
           >
         </div>
@@ -82,6 +82,21 @@
         <div class="error-message" *ngIf="(registerForm.get('confirmPassword')?.invalid || registerForm.hasError('passwordMismatch')) && (registerForm.get('confirmPassword')?.dirty || registerForm.get('confirmPassword')?.touched)">
           <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Please confirm your password</span>
           <span *ngIf="registerForm.hasError('passwordMismatch')">Passwords do not match</span>
+        </div>
+      </div>
+
+      <!-- Add role selection -->
+      <div class="form-group">
+        <label>Account Type</label>
+        <div class="role-selection">
+          <div class="role-option">
+            <input type="radio" id="user-role" formControlName="role" [value]="userRoles.USER">
+            <label for="user-role">Customer (Regular User)</label>
+          </div>
+          <div class="role-option">
+            <input type="radio" id="seller-role" formControlName="role" [value]="userRoles.SELLER">
+            <label for="seller-role">Seller (Can list products)</label>
+          </div>
         </div>
       </div>
       

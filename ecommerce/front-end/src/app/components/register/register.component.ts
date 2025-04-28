@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { UserRole } from '../../models/user.model'; // Import UserRole enum
 
 @Component({
   selector: 'app-register',
@@ -15,6 +16,7 @@ export class RegisterComponent {
   registerForm: FormGroup;
   errorMessage: string = '';
   isLoading: boolean = false;
+  userRoles = UserRole; // Make UserRole available to the template
 
   constructor(
     private fb: FormBuilder,
@@ -26,8 +28,9 @@ export class RegisterComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required],
-      first_name: [''],
-      last_name: ['']
+      firstName: [''], // Changed from first_name to firstName
+      lastName: [''],  // Changed from last_name to lastName
+      role: [UserRole.USER] // Default to USER role
     }, { validators: this.passwordMatchValidator });
   }
 

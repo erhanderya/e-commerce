@@ -2,6 +2,8 @@ package com.webapp.back_end.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -36,8 +38,9 @@ public class User {
     private String firstName;
     private String lastName;
     
+    @Enumerated(EnumType.STRING) // Store enum name as string
     @Column(nullable = false)
-    private Boolean isAdmin = false;
+    private Role role = Role.USER; // Default role is USER
 
     @Column(nullable = false)
     private Boolean banned = false;
@@ -104,12 +107,13 @@ public class User {
         this.token = token;
     }
 
-    public Boolean getIsAdmin() {
-        return isAdmin;
+    // Getter and Setter for role
+    public Role getRole() {
+        return role;
     }
 
-    public void setIsAdmin(Boolean isAdmin) {
-        this.isAdmin = isAdmin;
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public Boolean getBanned() {

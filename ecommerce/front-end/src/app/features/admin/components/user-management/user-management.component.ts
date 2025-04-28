@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { User } from '../../../../models/user.model';
+import { User, UserRole } from '../../../../models/user.model'; // Import UserRole
 import { AuthService } from '../../../../services/auth.service';
 
 @Component({
@@ -32,10 +32,12 @@ import { AuthService } from '../../../../services/auth.service';
           </div>
           
           <div class="form-group">
-            <label>
-              <input type="checkbox" formControlName="isAdmin">
-              Is Admin
-            </label>
+            <label for="role">Role</label>
+            <select id="role" formControlName="role">
+              <option [value]="UserRole.USER">User</option>
+              <option [value]="UserRole.SELLER">Seller</option>
+              <option [value]="UserRole.ADMIN">Admin</option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -59,7 +61,7 @@ import { AuthService } from '../../../../services/auth.service';
               <th>ID</th>
               <th>Username</th>
               <th>Email</th>
-              <th>Admin</th>
+              <th>Role</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -70,8 +72,9 @@ import { AuthService } from '../../../../services/auth.service';
               <td>{{user.username}}</td>
               <td>{{user.email}}</td>
               <td>
-                <span [class.is-admin]="user.isAdmin">
-                  {{user.isAdmin ? 'Yes' : 'No'}}
+                <span [class.is-admin]="user.role === UserRole.ADMIN" 
+                      [class.is-seller]="user.role === UserRole.SELLER">
+                  {{user.role}}
                 </span>
               </td>
               <td>
@@ -84,7 +87,10 @@ import { AuthService } from '../../../../services/auth.service';
                 <button (click)="toggleBan(user)" [class.unban-button]="user.banned">
                   {{user.banned ? 'Unban' : 'Ban'}}
                 </button>
-                <button (click)="makeAdmin(user)" class="make-admin-button" [class.admin-button]="user.isAdmin">{{user.isAdmin ? 'Quit Admin' : 'Make Admin'}}</button>
+                <button (click)="promoteToAdmin(user)" class="make-admin-button" 
+                        [class.admin-button]="user.role === UserRole.ADMIN">
+                  {{user.role === UserRole.ADMIN ? 'Remove Admin' : 'Make Admin'}}
+                </button>
                 <button (click)="deleteUser(user)" [disabled]="!user.id">Delete</button>
               </td>
             </tr>
@@ -195,6 +201,10 @@ import { AuthService } from '../../../../services/auth.service';
       color: #198754;
       font-weight: bold;
     }
+    .is-seller {
+      color: #0d6efd;
+      font-weight: bold;
+    }
     .is-banned {
       color: #dc3545;
       font-weight: bold;
@@ -206,6 +216,7 @@ export class UserManagementComponent implements OnInit {
   editingUser: User | null = null;
   userForm: FormGroup;
   isSaving = false;
+  UserRole = UserRole; // Expose to template
 
   constructor(
     private authService: AuthService,
@@ -229,7 +240,7 @@ export class UserManagementComponent implements OnInit {
       username: [user?.username || '', [Validators.required]],
       email: [user?.email || '', [Validators.required, Validators.email]],
       password: ['', user?.id ? [] : [Validators.required, Validators.minLength(6)]],
-      isAdmin: [user?.isAdmin || false],
+      role: [user?.role || UserRole.USER], // Use role instead of isAdmin
       banned: [user?.banned || false]
     });
   }
@@ -238,7 +249,7 @@ export class UserManagementComponent implements OnInit {
     this.editingUser = {
       username: '',
       email: '',
-      isAdmin: false,
+      role: UserRole.USER, // Set default role
       banned: false
     };
     this.userForm = this.createUserForm();
@@ -260,10 +271,12 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  makeAdmin(user: User) {
+  promoteToAdmin(user: User) {
     if (!user.id) return;
     
-    const updatedUser = { ...user, isAdmin: !user.isAdmin };
+    const newRole = user.role === UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN;
+    const updatedUser = { ...user, role: newRole };
+    
     this.authService.updateUser(user.id, updatedUser).subscribe({
       next: () => {
         this.loadUsers();

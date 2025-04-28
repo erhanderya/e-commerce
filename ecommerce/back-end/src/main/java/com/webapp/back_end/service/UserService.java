@@ -9,6 +9,7 @@ import com.webapp.back_end.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import com.webapp.back_end.model.Role; // Import Role enum
 
 @Service
 public class UserService {
@@ -64,7 +65,8 @@ public class UserService {
         user.setEmail(userDetails.getEmail());
         user.setFirstName(userDetails.getFirstName());
         user.setLastName(userDetails.getLastName());
-        user.setIsAdmin(userDetails.getIsAdmin());
+        // Update role instead of isAdmin
+        user.setRole(userDetails.getRole()); 
         user.setBanned(userDetails.getBanned());
         
         if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
@@ -99,6 +101,10 @@ public class UserService {
         }
         
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Set default role if not provided (optional, depends on requirements)
+        if (user.getRole() == null) {
+            user.setRole(Role.USER);
+        }
         User savedUser = userRepository.save(user);
         String token = jwtUtil.generateToken(savedUser);
         savedUser.setToken(token);

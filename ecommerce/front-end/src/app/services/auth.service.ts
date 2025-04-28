@@ -2,7 +2,7 @@ import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { User, LoginRequest, RegisterRequest } from '../models/user.model';
+import { User, LoginRequest, RegisterRequest, UserRole } from '../models/user.model';
 import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
@@ -38,11 +38,39 @@ export class AuthService {
   }
   
   register(userData: RegisterRequest): Observable<User> {
-    return this.http.post<User>(`${this.apiUrl}/register`, userData).pipe(
+    // Log the data being sent to help with debugging
+    console.log('Registering user with data:', userData);
+    
+    // Ensure required fields are present and not empty
+    if (!userData.username || !userData.email || !userData.password) {
+      return throwError(() => ({ message: 'Username, email, and password are required' }));
+    }
+    
+    // Create a user object with the correct structure matching backend expectations
+    const userToRegister = {
+      username: userData.username,
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName || '',  // Default to empty string if undefined
+      lastName: userData.lastName || '',    // Default to empty string if undefined
+      role: userData.role || 'USER',        // Default to USER if role is not specified
+      banned: false                         // Users are not banned by default
+    };
+    
+    console.log('Sending formatted user data:', userToRegister);
+    
+    return this.http.post<User>(`${this.apiUrl}/register`, userToRegister).pipe(
       tap(user => {
+        console.log('Registration successful:', user);
         this.storeUserData(user);
       }),
-      catchError(this.handleError)
+      catchError(error => {
+        console.error('Registration error details:', error);
+        if (error.error && error.error.message) {
+          return throwError(() => ({ message: error.error.message }));
+        }
+        return throwError(() => ({ message: 'Registration failed. Please try again.' }));
+      })
     );
   }
   
@@ -111,7 +139,26 @@ export class AuthService {
     return !!this.currentUserSubject.value;
   }
   
-  getToken(): string | null {
+  isAdmin(): boolean {
+    return !!this.currentUserSubject.value && this.currentUserSubject.value.role === UserRole.ADMIN;
+  }
+  
+  isSeller(): boolean {
+    return this.isSellerOrAdmin();
+  }
+  
+  isSellerOrAdmin(): boolean {
+    return !!this.currentUserSubject.value && 
+      (this.currentUserSubject.value.role === UserRole.SELLER || 
+       this.currentUserSubject.value.role === UserRole.ADMIN);
+  }
+
+  getCurrentUserId(): number | null {
+    return this.currentUserSubject.value?.id || null;
+  }
+  
+  // Renamed from getToken to match usage in ReviewService
+  getAuthToken(): string | null {
     return this.currentUserSubject.value?.token || null;
   }
   

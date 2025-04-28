@@ -29,7 +29,9 @@
         </ng-container>
         
         <ng-template #loggedIn>
-          <a *ngIf="currentUser?.isAdmin" routerLink="/admin" class="auth-link">Admin Panel</a>
+          <!-- Replace isAdmin check with role-based checks -->
+          <a *ngIf="isAdmin()" routerLink="/admin" class="auth-link">Admin Panel</a>
+          <a *ngIf="isSeller()" routerLink="/seller" class="auth-link">Seller Dashboard</a>
           <span class="user-welcome">{{ currentUser?.username }}</span>
           <a (click)="logout()" class="auth-link logout">Logout</a>
         </ng-template>

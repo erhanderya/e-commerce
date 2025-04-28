@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 import com.webapp.back_end.model.User;
+import com.webapp.back_end.model.Role;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,7 +20,7 @@ public class JwtUtil {
 
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("isAdmin", user.getIsAdmin());
+        claims.put("role", user.getRole().name());
         return createToken(claims, user.getEmail());
     }
 
@@ -47,7 +48,14 @@ public class JwtUtil {
 
     public Boolean isAdmin(String token) {
         final Claims claims = getAllClaimsFromToken(token);
-        return claims.get("isAdmin", Boolean.class);
+        String role = claims.get("role", String.class);
+        return Role.ADMIN.name().equals(role);
+    }
+
+    public Role getRole(String token) {
+        final Claims claims = getAllClaimsFromToken(token);
+        String roleStr = claims.get("role", String.class);
+        return roleStr != null ? Role.valueOf(roleStr) : Role.USER;
     }
 
     private Date getExpirationDateFromToken(String token) {

@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .alert {
     width: 30%;
     position: fixed; // Change position to fixed
@@ -45,7 +47,7 @@
     }
   }
   
-  // Alert color variants (using Bootstrap-like variable names for familiarity)
+  // Alert color variants
   $success: #28a745;
   $info: #17a2b8;
   $warning: #ffc107;
@@ -53,12 +55,12 @@
   
   // Helper function to darken colors (adjust percentage as needed)
   @function darken($color, $percent) {
-    @return mix(black, $color, $percent);
+    @return color.mix(black, $color, $percent);
   }
   
   // Helper function to lighten colors (adjust percentage as needed)
   @function lighten($color, $percent) {
-    @return mix(white, $color, $percent);
+    @return color.mix(white, $color, $percent);
   }
   
   .alert-success {

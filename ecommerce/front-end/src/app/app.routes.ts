@@ -3,7 +3,9 @@ import { ProductListComponent } from './components/product-list/product-list.com
 import { CartComponent } from './components/cart/cart.component';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
-import { adminGuard } from './guards/admin.guard';
+import { ProductDetailComponent } from './components/product-detail/product-detail.component';
+import { AdminGuard } from './guards/admin.guard';
+import { SellerGuard } from './guards/seller.guard';
 
 export const routes: Routes = [
   { path: '', component: ProductListComponent },
@@ -13,7 +15,13 @@ export const routes: Routes = [
   { 
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.module').then(m => m.AdminModule),
-    canActivate: [adminGuard]
+    canActivate: [AdminGuard]
   },
+  {
+    path: 'seller',
+    loadChildren: () => import('./features/seller/seller.module').then(m => m.SellerModule),
+    canActivate: [SellerGuard]
+  },
+  { path: 'product/:id', component: ProductDetailComponent },
   { path: '**', redirectTo: '' }
 ];
