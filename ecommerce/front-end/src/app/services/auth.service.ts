@@ -13,7 +13,7 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   private isBrowser: boolean;
-  
+
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -21,7 +21,7 @@ export class AuthService {
     this.isBrowser = isPlatformBrowser(this.platformId);
     this.loadUserFromStorage();
   }
-  
+
   private loadUserFromStorage(): void {
     if (this.isBrowser) {
       const userJson = localStorage.getItem('currentUser');
@@ -36,16 +36,16 @@ export class AuthService {
       }
     }
   }
-  
+
   register(userData: RegisterRequest): Observable<User> {
     // Log the data being sent to help with debugging
     console.log('Registering user with data:', userData);
-    
+
     // Ensure required fields are present and not empty
     if (!userData.username || !userData.email || !userData.password) {
       return throwError(() => ({ message: 'Username, email, and password are required' }));
     }
-    
+
     // Create a user object with the correct structure matching backend expectations
     const userToRegister = {
       username: userData.username,
@@ -56,9 +56,9 @@ export class AuthService {
       role: userData.role || 'USER',        // Default to USER if role is not specified
       banned: false                         // Users are not banned by default
     };
-    
+
     console.log('Sending formatted user data:', userToRegister);
-    
+
     return this.http.post<User>(`${this.apiUrl}/register`, userToRegister).pipe(
       tap(user => {
         console.log('Registration successful:', user);
@@ -73,13 +73,13 @@ export class AuthService {
       })
     );
   }
-  
+
   login(credentials: LoginRequest): Observable<User> {
     const loginData = {
       email: credentials.email.trim(),
       password: credentials.password
     };
-    
+
     return this.http.post<User>(`${this.apiUrl}/login`, loginData).pipe(
       tap(user => {
         this.storeUserData(user);
@@ -89,20 +89,20 @@ export class AuthService {
         if (error.error && typeof error.error === 'string') {
           return throwError(() => ({ message: error.error }));
         }
-        return throwError(() => ({ 
+        return throwError(() => ({
           message: error.error?.message || 'Login failed. Please check your credentials and try again.'
         }));
       })
     );
   }
-  
+
   logout(): void {
     if (this.isBrowser) {
       localStorage.removeItem('currentUser');
     }
     this.currentUserSubject.next(null);
   }
-  
+
   getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}`).pipe(
       catchError(this.handleError)
@@ -127,41 +127,52 @@ export class AuthService {
       catchError(this.handleError)
     );
   }
-  
+
+  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+    // Assuming an endpoint like /api/users/{userId}/change-password
+    return this.http.put(`${this.apiUrl}/${userId}/change-password`, { currentPassword, newPassword }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   private storeUserData(user: User): void {
     if (this.isBrowser) {
       localStorage.setItem('currentUser', JSON.stringify(user));
     }
     this.currentUserSubject.next(user);
   }
-  
+
   isLoggedIn(): boolean {
     return !!this.currentUserSubject.value;
   }
-  
+
   isAdmin(): boolean {
     return !!this.currentUserSubject.value && this.currentUserSubject.value.role === UserRole.ADMIN;
   }
-  
+
   isSeller(): boolean {
     return this.isSellerOrAdmin();
   }
-  
+
   isSellerOrAdmin(): boolean {
-    return !!this.currentUserSubject.value && 
-      (this.currentUserSubject.value.role === UserRole.SELLER || 
+    return !!this.currentUserSubject.value &&
+      (this.currentUserSubject.value.role === UserRole.SELLER ||
        this.currentUserSubject.value.role === UserRole.ADMIN);
   }
 
   getCurrentUserId(): number | null {
     return this.currentUserSubject.value?.id || null;
   }
-  
+
   // Renamed from getToken to match usage in ReviewService
   getAuthToken(): string | null {
     return this.currentUserSubject.value?.token || null;
   }
-  
+
   private handleError(error: any): Observable<never> {
     console.error('Auth service error', error);
     return throwError(() => error.error?.message || 'Something went wrong');

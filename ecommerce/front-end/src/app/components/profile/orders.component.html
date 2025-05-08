@@ -1,0 +1,167 @@
+<div class="profile-container">
+  <div class="profile-sidebar">
+    <h3>My Account</h3>
+    <ul class="profile-nav">
+      <li><a routerLink="/profile" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Profile</a></li>
+      <li><a routerLink="/profile/address" routerLinkActive="active">My Addresses</a></li>
+      <li><a routerLink="/profile/orders" routerLinkActive="active">My Orders</a></li>
+    </ul>
+  </div>
+
+  <div class="profile-content">
+    <h2>My Orders</h2>
+
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <div *ngIf="loading" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading orders...</p>
+    </div>
+
+    <div *ngIf="!loading && orders.length === 0" class="empty-orders">
+      <div class="empty-state">
+        <i class="fas fa-shopping-bag empty-icon"></i>
+        <h3>No Orders Found</h3>
+        <p>You haven't placed any orders yet.</p>
+        <a routerLink="/" class="btn-primary">Start Shopping</a>
+      </div>
+    </div>
+
+    <!-- Order List View -->
+    <div *ngIf="!loading && orders.length > 0 && !selectedOrder" class="orders-list">
+      <div class="order-item" *ngFor="let order of orders">
+        <div class="order-header">
+          <div class="order-info">
+            <div class="order-number">
+              <span>Order #{{ order.id }}</span>
+            </div>
+            <div class="order-date">
+              <span>{{ order.orderDate | date:'mediumDate' }}</span>
+            </div>
+          </div>
+          <div class="order-status">
+            <span [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <div class="order-details">
+            <div class="order-detail-item">
+              <span>Items:</span>
+              <span>{{ getTotalItems(order) }}</span>
+            </div>
+            <div class="order-detail-item">
+              <span>Total:</span>
+              <span>${{ order.totalAmount.toFixed(2) }}</span>
+            </div>
+          </div>
+          <div class="order-actions">
+            <button class="btn-primary btn-sm" (click)="viewOrderDetails(order)">View Details</button>
+            <button
+              *ngIf="canCancelOrder(order.status)"
+              class="btn-danger btn-sm"
+              (click)="cancelOrder(order.id)"
+            >
+              Cancel Order
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Detail View -->
+    <div *ngIf="selectedOrder" class="order-detail-view">
+      <div class="detail-header">
+        <button class="btn-back" (click)="closeOrderDetails()">
+          <i class="fas fa-arrow-left"></i> Back to Orders
+        </button>
+        <h3>Order #{{ selectedOrder.id }}</h3>
+        <div class="order-status">
+          <span [ngClass]="getStatusClass(selectedOrder.status)">{{ selectedOrder.status }}</span>
+        </div>
+      </div>
+
+      <div class="order-detail-section">
+        <div class="detail-row">
+          <div class="detail-col">
+            <h4>Order Information</h4>
+            <div class="info-group">
+              <label>Order Date</label>
+              <p>{{ selectedOrder.orderDate | date:'medium' }}</p>
+            </div>
+            <div class="info-group">
+              <label>Payment ID</label>
+              <p>{{ selectedOrder.paymentId }}</p>
+            </div>
+            <div class="info-group">
+              <label>Total</label>
+              <p>${{ selectedOrder.totalAmount.toFixed(2) }}</p>
+            </div>
+          </div>
+
+          <div class="detail-col">
+            <h4>Shipping Address</h4>
+            <div class="address-info">
+              <p>{{ selectedOrder.shippingAddress.fullName }}</p>
+              <p>{{ selectedOrder.shippingAddress.street }}</p>
+              <p>{{ selectedOrder.shippingAddress.city }}, {{ selectedOrder.shippingAddress.state }} {{ selectedOrder.shippingAddress.postalCode }}</p>
+              <p>{{ selectedOrder.shippingAddress.country }}</p>
+              <p>{{ selectedOrder.shippingAddress.phone }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-items-section">
+        <h4>Order Items</h4>
+        <div class="order-items-table">
+          <div class="order-item-header">
+            <div class="item-col product-col">Product</div>
+            <div class="item-col price-col">Price</div>
+            <div class="item-col quantity-col">Quantity</div>
+            <div class="item-col subtotal-col">Subtotal</div>
+          </div>
+
+          <div class="order-item-row" *ngFor="let item of selectedOrder.items">
+            <div class="item-col product-col">
+              <div class="product-info">
+                <div class="product-image">
+                  <img [src]="item.product.image_url" alt="{{ item.product.name }}">
+                </div>
+                <div class="product-details">
+                  <h5>{{ item.product.name }}</h5>
+                </div>
+              </div>
+            </div>
+            <div class="item-col price-col">${{ item.price.toFixed(2) }}</div>
+            <div class="item-col quantity-col">{{ item.quantity }}</div>
+            <div class="item-col subtotal-col">${{ (item.price * item.quantity).toFixed(2) }}</div>
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <div class="summary-item">
+            <span>Subtotal:</span>
+            <span>${{ selectedOrder.totalAmount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-item">
+            <span>Shipping:</span>
+            <span>Free</span>
+          </div>
+          <div class="summary-item total">
+            <span>Total:</span>
+            <span>${{ selectedOrder.totalAmount.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="order-detail-actions" *ngIf="canCancelOrder(selectedOrder.status)">
+          <button class="btn-danger" (click)="cancelOrder(selectedOrder.id)">
+            Cancel Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,140 @@
+package com.webapp.back_end.controller;
+
+import com.webapp.back_end.model.Order;
+import com.webapp.back_end.model.OrderStatus;
+import com.webapp.back_end.model.User;
+import com.webapp.back_end.repository.UserRepository;
+import com.webapp.back_end.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/orders")
+@CrossOrigin(origins = "http://localhost:4200")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    // Create order from cart
+    @PostMapping
+    public ResponseEntity<?> createOrder(@RequestBody Map<String, Object> payload, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            Long addressId = Long.parseLong(payload.get("addressId").toString());
+            String paymentId = payload.get("paymentId").toString();
+
+            Order order = orderService.createOrderFromCart(user.getId(), addressId, paymentId);
+            return ResponseEntity.ok(order);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Get user's orders
+    @GetMapping
+    public ResponseEntity<?> getUserOrders(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            List<Order> orders = orderService.getOrdersByUser(user.getId());
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Get order by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getOrderById(@PathVariable Long id, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            Order order = orderService.getOrderById(id)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            // Security check: only allow users to see their own orders, or admins to see any order
+            if (!order.getUser().getId().equals(user.getId()) && user.getRole() != com.webapp.back_end.model.Role.ADMIN) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Not authorized to view this order");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            return ResponseEntity.ok(order);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Update order status (admin only)
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, String> payload, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only admin can update order status
+            if (user.getRole() != com.webapp.back_end.model.Role.ADMIN) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only administrators can update order status");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            OrderStatus newStatus = OrderStatus.valueOf(payload.get("status"));
+            Order updatedOrder = orderService.updateOrderStatus(id, newStatus);
+            return ResponseEntity.ok(updatedOrder);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Get all orders (admin only)
+    @GetMapping("/admin")
+    public ResponseEntity<?> getAllOrders(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only admin can get all orders
+            if (user.getRole() != com.webapp.back_end.model.Role.ADMIN) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only administrators can view all orders");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            List<Order> orders = orderService.getAllOrders();
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+}

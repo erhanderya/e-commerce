@@ -1,0 +1,109 @@
+.success-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  padding: 20px;
+}
+
+.success-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 60px;
+  color: #28a745;
+  margin-bottom: 20px;
+
+  i {
+    animation: scaleUp 0.5s ease-in-out;
+  }
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.success-message {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.order-details {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+
+  p {
+    margin-bottom: 10px;
+    color: #555;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+
+  button {
+    min-width: 170px;
+  }
+}
+
+.btn-primary {
+  background-color: #4a6ee0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #3a5ecc;
+  }
+}
+
+.btn-secondary {
+  background-color: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #d0d0d0;
+  }
+}
+
+@keyframes scaleUp {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

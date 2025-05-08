@@ -1,0 +1,182 @@
+<div class="profile-container">
+  <div class="profile-sidebar">
+    <h3>My Account</h3>
+    <ul class="profile-nav">
+      <li><a routerLink="/profile" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Profile</a></li>
+      <li><a routerLink="/profile/address" routerLinkActive="active">My Addresses</a></li>
+      <li><a routerLink="/profile/orders" routerLinkActive="active">My Orders</a></li>
+    </ul>
+  </div>
+
+  <div class="profile-content">
+    <div class="address-header">
+      <h2>My Addresses</h2>
+      <button class="btn-primary" (click)="toggleAddressForm()" *ngIf="!showAddressForm">
+        Add New Address
+      </button>
+    </div>
+
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <div *ngIf="loading" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading addresses...</p>
+    </div>
+
+    <!-- Address Form -->
+    <div *ngIf="showAddressForm" class="address-form-container">
+      <h3>{{ editMode ? 'Edit Address' : 'Add New Address' }}</h3>
+
+      <form [formGroup]="addressForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fullName">Full Name</label>
+            <input
+              type="text"
+              id="fullName"
+              formControlName="fullName"
+              placeholder="Full Name"
+              [ngClass]="{'invalid': addressForm.get('fullName')?.invalid && addressForm.get('fullName')?.touched}"
+            >
+            <div class="validation-error" *ngIf="addressForm.get('fullName')?.invalid && addressForm.get('fullName')?.touched">
+              Full name is required
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input
+              type="tel"
+              id="phone"
+              formControlName="phone"
+              placeholder="Phone Number"
+              [ngClass]="{'invalid': addressForm.get('phone')?.invalid && addressForm.get('phone')?.touched}"
+            >
+            <div class="validation-error" *ngIf="addressForm.get('phone')?.invalid && addressForm.get('phone')?.touched">
+              Phone number is required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="street">Street Address</label>
+          <input
+            type="text"
+            id="street"
+            formControlName="street"
+            placeholder="Street Address"
+            [ngClass]="{'invalid': addressForm.get('street')?.invalid && addressForm.get('street')?.touched}"
+          >
+          <div class="validation-error" *ngIf="addressForm.get('street')?.invalid && addressForm.get('street')?.touched">
+            Street address is required
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="city">City</label>
+            <input
+              type="text"
+              id="city"
+              formControlName="city"
+              placeholder="City"
+              [ngClass]="{'invalid': addressForm.get('city')?.invalid && addressForm.get('city')?.touched}"
+            >
+            <div class="validation-error" *ngIf="addressForm.get('city')?.invalid && addressForm.get('city')?.touched">
+              City is required
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="state">State/Province</label>
+            <input
+              type="text"
+              id="state"
+              formControlName="state"
+              placeholder="State/Province"
+              [ngClass]="{'invalid': addressForm.get('state')?.invalid && addressForm.get('state')?.touched}"
+            >
+            <div class="validation-error" *ngIf="addressForm.get('state')?.invalid && addressForm.get('state')?.touched">
+              State/Province is required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="postalCode">Postal Code</label>
+            <input
+              type="text"
+              id="postalCode"
+              formControlName="postalCode"
+              placeholder="Postal Code"
+              [ngClass]="{'invalid': addressForm.get('postalCode')?.invalid && addressForm.get('postalCode')?.touched}"
+            >
+            <div class="validation-error" *ngIf="addressForm.get('postalCode')?.invalid && addressForm.get('postalCode')?.touched">
+              Postal code is required
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="country">Country</label>
+            <input
+              type="text"
+              id="country"
+              formControlName="country"
+              placeholder="Country"
+              [ngClass]="{'invalid': addressForm.get('country')?.invalid && addressForm.get('country')?.touched}"
+            >
+            <div class="validation-error" *ngIf="addressForm.get('country')?.invalid && addressForm.get('country')?.touched">
+              Country is required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" formControlName="isDefault"> Set as default shipping address
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="submitting">
+            {{ submitting ? 'Saving...' : (editMode ? 'Update Address' : 'Save Address') }}
+          </button>
+          <button type="button" class="btn-secondary" (click)="toggleAddressForm()">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Address List -->
+    <div *ngIf="!loading && !showAddressForm" class="address-list">
+      <div *ngIf="addresses.length === 0" class="no-addresses">
+        <p>You don't have any saved addresses.</p>
+        <button class="btn-primary" (click)="toggleAddressForm()">Add New Address</button>
+      </div>
+
+      <div *ngFor="let address of addresses" class="address-card">
+        <div class="address-card-content">
+          <div class="address-name">
+            {{ address.fullName }}
+            <span *ngIf="address.isDefault" class="default-badge">Default</span>
+          </div>
+          <div class="address-details">
+            <p>{{ address.street }}</p>
+            <p>{{ address.city }}, {{ address.state }} {{ address.postalCode }}</p>
+            <p>{{ address.country }}</p>
+            <p>{{ address.phone }}</p>
+          </div>
+        </div>
+        <div class="address-card-actions">
+          <button class="btn-link" (click)="editAddress(address)">Edit</button>
+          <button class="btn-link text-danger" (click)="deleteAddress(address.id || 0)">Delete</button>
+          <button *ngIf="!address.isDefault" class="btn-link" (click)="setAsDefault(address.id || 0)">
+            Set as Default
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,77 +1,83 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, Router } from '@angular/router';
+import { RouterOutlet, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { CartService } from './services/cart.service';
+import { HttpClientModule } from '@angular/common/http';
 import { AuthService } from './services/auth.service';
-import { User, UserRole } from './models/user.model'; // Import UserRole enum
-import { AlertService } from './services/alert.service';
+import { CartService } from './services/cart.service';
 import { AlertComponent } from './components/alert/alert.component';
+import { User } from './models/user.model';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, FormsModule, AlertComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, FormsModule, HttpClientModule, AlertComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
   title = 'E-Commerce Store';
-  cartItemCount = 0;
+  searchQuery = '';
   currentUser: User | null = null;
-  searchQuery: string = '';
+  cartItemCount = 0;
+  showUserDropdown = false;
+  private userSubscription?: Subscription;
+  private cartSubscription?: Subscription;
 
   constructor(
-    private cartService: CartService,
     private authService: AuthService,
-    private router: Router,
-    private alertService: AlertService
+    private cartService: CartService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.cartService.getCartItems().subscribe(items => {
-      this.cartItemCount = this.cartService.getTotalItems();
-    });
-
-    this.authService.currentUser$.subscribe(user => {
+    this.userSubscription = this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
     });
 
-    if (this.authService.isLoggedIn()) {
-      if(this.currentUser?.banned) {
-        // Use AlertService instead of alert()
-        this.alertService.error('Your account has been banned. Please contact support.', false);
-        this.authService.logout(); // Logout happens immediately after showing the alert
-        // No need to navigate here, logout likely handles redirection or the guard will
-      }
+    this.cartSubscription = this.cartService.getCartItems().subscribe(items => {
+      this.cartItemCount = items.reduce((count, item) => count + item.quantity, 0);
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.userSubscription) {
+      this.userSubscription.unsubscribe();
     }
-  }
-
-  // Add methods to check user roles
-  isAdmin(): boolean {
-    return this.currentUser?.role === UserRole.ADMIN;
-  }
-
-  isSeller(): boolean {
-    return this.currentUser?.role === UserRole.SELLER || this.currentUser?.role === UserRole.ADMIN;
-  }
-
-  logout(): void {
-    const username = this.currentUser?.username; // Get username before logging out
-    this.authService.logout();
-    // Show success alert after logout
-    this.alertService.success(`User ${username} logged out successfully.`);
+    if (this.cartSubscription) {
+      this.cartSubscription.unsubscribe();
+    }
   }
 
   onSearch(): void {
-    if (this.searchQuery === '') {
-      this.router.navigate(['/']);
-    }
-
     if (this.searchQuery.trim()) {
-      this.router.navigate(['/'], { 
-        queryParams: { search: this.searchQuery.trim() } 
+      this.router.navigate(['/'], {
+        queryParams: { search: this.searchQuery.trim() }
       });
     }
+  }
+
+  toggleUserDropdown(event: Event): void {
+    event.stopPropagation();
+    this.showUserDropdown = !this.showUserDropdown;
+  }
+
+  @HostListener('document:click')
+  closeDropdown(): void {
+    this.showUserDropdown = false;
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+
+  isAdmin(): boolean {
+    return this.currentUser?.role === 'ADMIN';
+  }
+
+  isSeller(): boolean {
+    return this.currentUser?.role === 'SELLER';
   }
 }

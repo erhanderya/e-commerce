@@ -1,0 +1,147 @@
+<div class="order-detail-container">
+  <div class="back-link">
+    <button (click)="goBack()" class="back-button">← Back to Orders</button>
+  </div>
+
+  <h2>Order Details</h2>
+
+  <div *ngIf="loading" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Loading order details...</p>
+  </div>
+
+  <div *ngIf="!loading && error" class="error-message">
+    <p>{{ error }}</p>
+    <button (click)="loadOrder()">Try Again</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && order">
+    <div class="order-header">
+      <div class="order-id">
+        <h3>Order #{{ order.id }}</h3>
+        <p class="order-date">Placed on {{ formatDate(order.orderDate) }}</p>
+      </div>
+      <div class="order-status" [ngStyle]="{'background-color': getOrderStatusColor(order.status)}">
+        {{ getOrderStatusLabel(order.status) }}
+      </div>
+    </div>
+
+    <!-- Order Tracking System -->
+    <div class="order-tracking-section" *ngIf="order.status !== OrderStatus.CANCELLED">
+      <h3>Order Tracking</h3>
+
+      <div class="tracking-bar">
+        <div class="progress-bar">
+          <div class="progress" [style.width.%]="getTrackingProgress(order.status)"></div>
+        </div>
+
+        <div class="tracking-steps">
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.PENDING, order.status)}">
+            <div class="step-indicator"></div>
+            <p>Order Received</p>
+          </div>
+
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.PREPARING, order.status)}">
+            <div class="step-indicator"></div>
+            <p>Preparing</p>
+          </div>
+
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.IN_COUNTRY, order.status)}">
+            <div class="step-indicator"></div>
+            <p>In Your Country</p>
+          </div>
+
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.IN_CITY, order.status)}">
+            <div class="step-indicator"></div>
+            <p>In Your City</p>
+          </div>
+
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.OUT_FOR_DELIVERY, order.status)}">
+            <div class="step-indicator"></div>
+            <p>Out for Delivery</p>
+          </div>
+
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.DELIVERED, order.status)}">
+            <div class="step-indicator"></div>
+            <p>Delivered</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Order Status Control -->
+    <div class="admin-controls" *ngIf="isAdmin">
+      <h3>Admin Controls</h3>
+      <div class="status-update-form">
+        <label for="orderStatus">Update Order Status:</label>
+        <select id="orderStatus" [(ngModel)]="selectedStatus" [disabled]="updatingStatus">
+          <option [value]="OrderStatus.PENDING">Order Received</option>
+          <option [value]="OrderStatus.PREPARING">Preparing</option>
+          <option [value]="OrderStatus.IN_COUNTRY">In Country</option>
+          <option [value]="OrderStatus.IN_CITY">In City</option>
+          <option [value]="OrderStatus.OUT_FOR_DELIVERY">Out for Delivery</option>
+          <option [value]="OrderStatus.DELIVERED">Delivered</option>
+          <option [value]="OrderStatus.CANCELLED">Cancelled</option>
+        </select>
+        <button (click)="updateOrderStatus()" [disabled]="updatingStatus || selectedStatus === order.status">
+          {{ updatingStatus ? 'Updating...' : 'Update Status' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Customer Information -->
+    <div class="info-section">
+      <div class="shipping-info">
+        <h3>Shipping Address</h3>
+        <p>{{ order.shippingAddress.street }}</p>
+        <p>{{ order.shippingAddress.city }}, {{ order.shippingAddress.state }} {{ order.shippingAddress.zipCode }}</p>
+        <p>{{ order.shippingAddress.country }}</p>
+      </div>
+
+      <div class="payment-info">
+        <h3>Payment Information</h3>
+        <p><strong>Payment ID:</strong> {{ order.paymentId }}</p>
+        <p><strong>Total Amount:</strong> ${{ order.totalAmount }}</p>
+      </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="order-items-section">
+      <h3>Order Items</h3>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of order.items">
+            <td class="product-info">
+              <div *ngIf="item.product.image_url" class="product-image">
+                <img [src]="item.product.image_url" [alt]="item.product.name">
+              </div>
+              <div class="product-details">
+                <a [routerLink]="['/products', item.product.id]" class="product-name">{{ item.product.name }}</a>
+                <p *ngIf="item.product.description" class="product-description">
+                  {{ item.product.description.length > 100 ? (item.product.description | slice:0:100) + '...' : item.product.description }}
+                </p>
+              </div>
+            </td>
+            <td class="price">${{ item.price }}</td>
+            <td class="quantity">{{ item.quantity }}</td>
+            <td class="subtotal">${{ item.quantity * item.price }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="text-right"><strong>Total:</strong></td>
+            <td>${{ order.totalAmount }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </ng-container>
+</div>

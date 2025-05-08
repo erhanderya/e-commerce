@@ -3,14 +3,14 @@
     <div class="logo">
       <a routerLink="/">E-Commerce Store</a>
     </div>
-    
+
     <div class="search-bar">
-      <input 
-        type="text" 
-        [(ngModel)]="searchQuery" 
+      <input
+        type="text"
+        placeholder="Search for products..."
+        [(ngModel)]="searchQuery"
         (keyup.enter)="onSearch()"
-        placeholder="Search products..."
-      >
+      />
       <button (click)="onSearch()">
         <i class="fa fa-search"></i>
       </button>
@@ -19,35 +19,43 @@
     <nav class="navigation">
       <div class="nav-links">
         <a routerLink="/cart" class="cart-link">
-          <i class="fa fa-shopping-cart"></i> Cart
+          Cart
           <span class="cart-count" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
         </a>
-        
-        <ng-container *ngIf="!currentUser; else loggedIn">
+
+        <ng-container *ngIf="!currentUser">
           <a routerLink="/login" class="auth-link">Login</a>
           <a routerLink="/register" class="auth-link">Register</a>
         </ng-container>
-        
-        <ng-template #loggedIn>
-          <!-- Replace isAdmin check with role-based checks -->
-          <a *ngIf="isAdmin()" routerLink="/admin" class="auth-link">Admin Panel</a>
-          <a *ngIf="isSeller()" routerLink="/seller" class="auth-link">Seller Dashboard</a>
-          <span class="user-welcome">{{ currentUser?.username }}</span>
-          <a (click)="logout()" class="auth-link logout">Logout</a>
-        </ng-template>
+
+        <ng-container *ngIf="currentUser">
+          <div class="user-dropdown">
+            <div class="user-welcome" (click)="toggleUserDropdown($event)">
+              {{ currentUser.username }} <i class="fa fa-chevron-down"></i>
+            </div>
+
+            <div class="user-dropdown-content" *ngIf="showUserDropdown">
+              <a routerLink="/profile">My Profile</a>
+              <a routerLink="/profile/address">My Addresses</a>
+              <a routerLink="/orders">My Orders</a>
+              <a *ngIf="isAdmin()" routerLink="/admin">Admin Dashboard</a>
+              <a *ngIf="isSeller()" routerLink="/seller">Seller Dashboard</a>
+              <a href="javascript:void(0)" class="logout" (click)="logout()">Logout</a>
+            </div>
+          </div>
+        </ng-container>
       </div>
-    </nav>  
+    </nav>
   </div>
 </header>
 
-<app-alert></app-alert> <!-- Add the alert component here -->
-
 <main class="app-content">
+  <app-alert></app-alert>
   <router-outlet></router-outlet>
 </main>
 
 <footer class="app-footer">
   <div class="container">
-    <p>&copy; 2025 E-Commerce Store. All rights reserved.</p>
+    <p>&copy; 2023 E-Commerce Store. All rights reserved.</p>
   </div>
 </footer>

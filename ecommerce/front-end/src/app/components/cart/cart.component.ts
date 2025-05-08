@@ -31,12 +31,12 @@ export class CartComponent implements OnInit {
     // First check authentication state
     this.authService.currentUser$.subscribe(user => {
       this.isLoggedIn = !!user;
-      
+
       if (this.isLoggedIn) {
         this.loadCartItems();
       }
     });
-    
+
     this.trackLoadingState();
   }
 
@@ -50,7 +50,7 @@ export class CartComponent implements OnInit {
     if (!this.isLoggedIn) {
       return;
     }
-    
+
     this.cartService.getCartItems().subscribe(items => {
       this.cartItems = items;
       this.totalPrice = this.cartService.getTotalPrice();
@@ -131,10 +131,28 @@ export class CartComponent implements OnInit {
       }
     });
   }
-  
+
+  proceedToCheckout(): void {
+    if (!this.isLoggedIn) {
+      this.alertService.warn('Please log in to proceed to checkout.');
+      this.router.navigate(['/login'], {
+        queryParams: { returnUrl: '/checkout' }
+      });
+      return;
+    }
+
+    if (this.cartItems.length === 0) {
+      this.alertService.warn('Your cart is empty. Please add items before checking out.');
+      return;
+    }
+
+    // Navigate to checkout page
+    this.router.navigate(['/checkout']);
+  }
+
   goToLogin(): void {
-    this.router.navigate(['/login'], { 
-      queryParams: { returnUrl: this.router.url } 
+    this.router.navigate(['/login'], {
+      queryParams: { returnUrl: this.router.url }
     });
   }
 }
