@@ -118,4 +118,24 @@ export class OrderService {
         return '#7f8c8d'; // gray
     }
   }
+
+  // Get orders for the current seller
+  getSellerOrders(): Observable<Order[]> {
+    return this.http.get<Order[]>(`${this.apiUrl}/seller`).pipe(
+      catchError(error => {
+        console.error('Error fetching seller orders:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch seller orders'));
+      })
+    );
+  }
+
+  // Update order status as a seller (when a seller updates status of their products)
+  updateSellerOrderStatus(orderId: number, status: OrderStatus): Observable<Order> {
+    return this.http.put<Order>(`${this.apiUrl}/${orderId}/seller-status`, { status }).pipe(
+      catchError(error => {
+        console.error('Error updating order status:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to update order status'));
+      })
+    );
+  }
 }

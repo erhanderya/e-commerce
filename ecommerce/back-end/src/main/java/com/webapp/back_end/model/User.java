@@ -13,6 +13,8 @@ import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 @Data
 @Entity
@@ -49,6 +51,8 @@ public class User {
     private String token;
     
     @OneToOne(mappedBy = "user", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude // Prevent recursion in equals/hashCode
+    @ToString.Exclude // Also exclude from toString to be safe, though less likely to cause StackOverflow
     private Cart cart;
 
     public String getEmail() {

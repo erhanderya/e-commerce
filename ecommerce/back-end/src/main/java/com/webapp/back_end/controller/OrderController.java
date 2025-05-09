@@ -137,4 +137,66 @@ public class OrderController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    // Get seller's orders (seller only)
+    @GetMapping("/seller")
+    public ResponseEntity<?> getSellerOrders(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only sellers can access this endpoint
+            if (user.getRole() != com.webapp.back_end.model.Role.SELLER) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only sellers can view their orders");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            List<Order> sellerOrders = orderService.getOrdersForSeller(user.getId());
+            return ResponseEntity.ok(sellerOrders);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Update order status by seller (seller only, for orders containing their products)
+    @PutMapping("/{id}/seller-status")
+    public ResponseEntity<?> updateOrderStatusBySeller(@PathVariable Long id, @RequestBody Map<String, String> payload, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only sellers can update order status
+            if (user.getRole() != com.webapp.back_end.model.Role.SELLER) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only sellers can update order status");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            OrderStatus newStatus = OrderStatus.valueOf(payload.get("status"));
+            Order order = orderService.getOrderById(id)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            // Check if this order contains any products from this seller
+            boolean hasSellersProduct = order.getItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(user.getId()));
+
+            if (!hasSellersProduct) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "This order does not contain any of your products");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            Order updatedOrder = orderService.updateOrderStatus(id, newStatus);
+            return ResponseEntity.ok(updatedOrder);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }

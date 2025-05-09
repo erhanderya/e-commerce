@@ -19,6 +19,7 @@ import { User } from '../../../../models/user.model';
       <div class="dashboard-nav">
         <button [routerLink]="['./products']" routerLinkActive="active">My Products</button>
         <button [routerLink]="['./create']" routerLinkActive="active">Add New Product</button>
+        <button [routerLink]="['./orders']" routerLinkActive="active">My Orders</button>
       </div>
 
       <div class="dashboard-content">

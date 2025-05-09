@@ -1,0 +1,60 @@
+<div class="seller-orders">
+  <h3>Orders Containing My Products</h3>
+  
+  <div *ngIf="loading" class="loading">
+    Loading orders...
+  </div>
+  
+  <div *ngIf="!loading && orders.length === 0" class="no-orders">
+    <p>No orders found containing your products.</p>
+  </div>
+  
+  <div *ngIf="!loading && orders.length > 0" class="order-list">
+    <div class="order-item" *ngFor="let order of orders">
+      <div class="order-header">
+        <div class="order-id">Order #{{order.id}}</div>
+        <div class="order-date">{{order.orderDate | date:'medium'}}</div>
+        <div class="order-status" [style.background-color]="getStatusColor(order.status)">
+          {{getStatusLabel(order.status)}}
+        </div>
+      </div>
+      
+      <div class="order-items">
+        <div class="order-item-row" *ngFor="let item of getSellerItems(order)">
+          <div class="product-image">
+            <img [src]="item.product.image_url || 'assets/images/product-placeholder.png'" [alt]="item.product.name">
+          </div>
+          <div class="product-details">
+            <div class="product-name">{{item.product.name}}</div>
+            <div class="product-price">Price: ${{item.price}}</div>
+            <div class="product-quantity">Quantity: {{item.quantity}}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="order-summary">
+        <div class="customer-info">
+          <strong>Customer:</strong> {{order.user?.firstName}} {{order.user?.lastName}}
+        </div>
+        <div class="shipping-address">
+          <strong>Shipping to:</strong> {{formatAddress(order.shippingAddress)}}
+        </div>
+        <div class="status-update">
+          <strong>Update Status:</strong>
+          <select [disabled]="isUpdatingStatus(order.id)" [(ngModel)]="order.status" (change)="updateOrderStatus(order.id!, order.status)">
+            <option [value]="OrderStatus.PENDING">Order Received</option>
+            <option [value]="OrderStatus.PREPARING">Preparing Order</option>
+            <option [value]="OrderStatus.IN_COUNTRY">Package in Country</option>
+            <option [value]="OrderStatus.IN_CITY">Package in City</option>
+            <option [value]="OrderStatus.OUT_FOR_DELIVERY">Out for Delivery</option>
+            <option [value]="OrderStatus.DELIVERED">Delivered</option>
+            <option [value]="OrderStatus.CANCELLED">Cancelled</option>
+          </select>
+          <div *ngIf="isUpdatingStatus(order.id)" class="status-spinner">
+            Updating...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

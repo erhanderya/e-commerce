@@ -13,6 +13,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 public class OrderService {
@@ -115,5 +118,12 @@ public class OrderService {
      */
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
+    }
+    
+    /**
+     * Get orders that contain products from a specific seller
+     */
+    public List<Order> getOrdersForSeller(Long sellerId) {
+        return orderRepository.findOrdersContainingSellerProducts(sellerId);
     }
 }

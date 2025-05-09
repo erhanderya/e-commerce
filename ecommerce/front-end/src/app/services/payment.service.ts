@@ -27,7 +27,7 @@ export class PaymentService {
       currency: 'usd',
       description: description,
       addressId: addressId,
-      successUrl: `${window.location.origin}/payment-success?addressId=${addressId}`,
+      successUrl: `${window.location.origin}/payment-success?addressId=${addressId}&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: window.location.origin + '/checkout'
     };
     return this.http.post<any>(`${this.baseUrl}/create-checkout-session`, sessionRequest);
