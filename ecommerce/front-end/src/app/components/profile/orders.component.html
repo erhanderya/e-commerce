@@ -31,7 +31,7 @@
 
     <!-- Order List View -->
     <div *ngIf="!loading && orders.length > 0 && !selectedOrder" class="orders-list">
-      <div class="order-item" *ngFor="let order of orders">
+      <div class="order-item" *ngFor="let order of orders" [ngClass]="order.status">
         <div class="order-header">
           <div class="order-info">
             <div class="order-number">
@@ -141,7 +141,7 @@
           </div>
         </div>
 
-        <div class="order-summary">
+        <div class="order-summary total-summary">
           <div class="summary-item">
             <span>Subtotal:</span>
             <span>${{ selectedOrder.totalAmount.toFixed(2) }}</span>

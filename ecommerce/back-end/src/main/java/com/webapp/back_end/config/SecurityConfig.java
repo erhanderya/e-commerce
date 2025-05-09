@@ -45,7 +45,8 @@ public class SecurityConfig {
                 // Authenticated endpoints (general)
                 .requestMatchers("/api/cart/**").authenticated() 
                 .requestMatchers("/api/orders/**").authenticated() // Assuming orders require authentication
-
+                .requestMatchers("/api/users/profile", "/api/users/profile/**").authenticated() // User profile endpoints - require auth but not admin
+                
                 // Seller/Admin endpoints for products
                 .requestMatchers(HttpMethod.POST, "/api/products").hasAnyAuthority(Role.SELLER.name(), Role.ADMIN.name()) // Only Sellers or Admins can create
                 .requestMatchers(HttpMethod.PUT, "/api/products/{id}").hasAnyAuthority(Role.SELLER.name(), Role.ADMIN.name()) // Only Sellers or Admins can update (service layer does specific owner check)

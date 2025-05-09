@@ -112,11 +112,29 @@ public class UserService {
     }
     
     public User getUserProfile(String token) {
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        try {
+            System.out.println("UserService.getUserProfile - Received token: " + (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "null"));
+            
+            // The Controller should have already extracted the token from "Bearer " prefix
+            // but let's check again to be safe
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+                System.out.println("UserService.getUserProfile - Extracted token from Bearer prefix");
+            }
+            
+            System.out.println("UserService.getUserProfile - Processing token: " + (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "null"));
+            String email = jwtUtil.getEmailFromToken(token);
+            System.out.println("UserService.getUserProfile - Extracted email: " + email);
+            
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            System.out.println("UserService.getUserProfile - Found user: " + user.getUsername());
+            return user;
+        } catch (Exception e) {
+            System.out.println("UserService.getUserProfile - Error: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to get user profile: " + e.getMessage());
         }
-        String email = jwtUtil.getEmailFromToken(token);
-        return userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

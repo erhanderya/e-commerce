@@ -28,16 +28,16 @@ export class ProfileComponent implements OnInit {
   showPasswordForm: boolean = false;
 
   constructor(
-    private authService: AuthService,
+    public authService: AuthService,
     private fb: FormBuilder,
-    private router: Router,
+    public router: Router,
     private alertService: AlertService
   ) {
     this.profileForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['']
+      username: ['', Validators.required]
     });
 
     this.passwordForm = this.fb.group({
@@ -53,40 +53,42 @@ export class ProfileComponent implements OnInit {
 
   loadUserProfile(): void {
     this.loading = true;
-    this.authService.getProfile().subscribe({
-      next: (user: User | null) => {
-        if (user) {
-          this.user = user;
-          this.profileForm.patchValue({
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            phone: (user as any).phone || '' // Assuming 'phone' exists on the user object from the backend
-          });
-        } else {
-          this.alertService.error('Could not load profile. Please log in again.');
-          this.router.navigate(['/login']);
-        }
+    this.error = '';
+    
+    console.log('ProfileComponent - Loading user profile, token exists:', !!this.authService.getAuthToken());
+    
+    this.authService.getUserProfile().subscribe({
+      next: (user: User) => {
+        console.log('ProfileComponent - Profile loaded successfully:', user);
+        this.user = user;
+        this.profileForm.patchValue({
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email,
+          username: user.username
+        });
         this.loading = false;
       },
       error: (err: any) => {
-        this.error = 'Failed to load your profile. Please try refreshing the page.';
+        console.error('ProfileComponent - Error loading user profile:', err);
+        this.error = `Failed to load your profile: ${err.message || 'Unknown error'}. Please try refreshing the page.`;
         this.loading = false;
-        console.error('Error loading user profile:', err);
+        
         if (err.status === 401 || err.status === 403) {
-          this.router.navigate(['/login']);
+          this.alertService.error('Authentication required. Please log in again.');
+          setTimeout(() => this.router.navigate(['/login']), 2000);
         }
       }
     });
   }
 
   onProfileSubmit(): void {
-    if (this.profileForm.invalid || !this.user || !this.user.id) return;
+    if (this.profileForm.invalid) return;
 
     this.updating = true;
     const formData = this.profileForm.value;
 
-    this.authService.updateUser(this.user.id, formData).subscribe({
+    this.authService.updateUserProfile(formData).subscribe({
       next: (updatedUser: User) => {
         this.user = updatedUser;
         this.updating = false;

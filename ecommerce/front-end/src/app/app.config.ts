@@ -17,11 +17,17 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   
   // Add token to headers if available
   if (token) {
+    // Log the first few characters of the token for debugging
+    const tokenPreview = token.substring(0, Math.min(10, token.length)) + '...';
+    console.log(`Auth Interceptor adding token: ${tokenPreview}`);
+    
     const authReq = req.clone({
       headers: req.headers.set('Authorization', `Bearer ${token}`)
     });
     console.log('Added Authorization header to request:', authReq.headers.has('Authorization'));
     return next(authReq);
+  } else {
+    console.log('No token available - sending request without Authorization header');
   }
   
   return next(req);

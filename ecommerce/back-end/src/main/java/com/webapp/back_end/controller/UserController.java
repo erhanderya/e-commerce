@@ -38,10 +38,41 @@ public class UserController {
         }
     }
     
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserProfile(@RequestHeader("Authorization") String authHeader) {
+        try {
+            // Extract token from "Bearer <token>"
+            String token = authHeader;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+            return ResponseEntity.ok(userService.getUserProfile(token));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         try {
             return ResponseEntity.ok(userService.updateUser(id, userDetails));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestHeader("Authorization") String authHeader, @RequestBody User userDetails) {
+        try {
+            // Extract token from "Bearer <token>"
+            String token = authHeader;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+            User currentUser = userService.getUserProfile(token);
+            return ResponseEntity.ok(userService.updateUser(currentUser.getId(), userDetails));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
                 .body(new ErrorResponse(e.getMessage()));

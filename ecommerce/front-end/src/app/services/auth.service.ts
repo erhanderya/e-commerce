@@ -103,6 +103,35 @@ export class AuthService {
     this.currentUserSubject.next(null);
   }
 
+  getUserProfile(): Observable<User> {
+    console.log('getUserProfile - Auth token:', this.getAuthToken());
+    return this.http.get<User>(`${this.apiUrl}/profile`).pipe(
+      tap(user => {
+        // Update stored user data with the latest from the server, but keep the token
+        const token = this.currentUserSubject.value?.token;
+        if (token) {
+          user.token = token;
+          this.storeUserData(user);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  updateUserProfile(userData: Partial<User>): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/profile`, userData).pipe(
+      tap(updatedUser => {
+        // Preserve the token when updating the stored user
+        const token = this.currentUserSubject.value?.token;
+        if (token) {
+          updatedUser.token = token;
+        }
+        this.storeUserData(updatedUser);
+      }),
+      catchError(this.handleError)
+    );
+  }
+
   getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}`).pipe(
       catchError(this.handleError)

@@ -13,6 +13,8 @@
     margin: 0;
     padding: 0;
     border-bottom: none;
+    font-size: 24px;
+    color: #333;
   }
 }
 
@@ -22,199 +24,211 @@
   justify-content: flex-end;
 }
 
-.address-form-container {
+.address-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+
+  h2 {
+    margin: 0;
+    padding: 0;
+    border-bottom: none;
+    font-size: 24px;
+    color: #333;
+  }
+}
+
+.no-addresses {
   background-color: #f8f9fa;
-  padding: 20px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 50px;
+  text-align: center;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  p {
+    color: #666;
+    margin-bottom: 25px;
+    font-size: 16px;
+  }
+
+  button {
+    display: inline-block;
+  }
+}
+
+.address-form-container {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   h3 {
     margin-top: 0;
     margin-bottom: 20px;
     font-size: 18px;
     color: #333;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 25px;
 
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
+      gap: 15px;
     }
   }
 
   .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 25px;
 
     label {
       display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
-      color: #555;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #333;
+      font-size: 15px;
     }
 
     input[type="text"],
     input[type="tel"] {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #4a6ee0;
+        box-shadow: 0 0 0 2px rgba(74, 110, 224, 0.2);
+      }
 
       &.invalid {
         border-color: #dc3545;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
       }
     }
 
-    .error-message {
+    .validation-error {
       color: #dc3545;
-      font-size: 12px;
-      margin-top: 5px;
+      font-size: 14px;
+      margin-top: 8px;
+      display: block;
     }
   }
 
   .checkbox-group {
     display: flex;
     align-items: center;
+    margin-top: 15px;
 
     label {
       display: flex;
       align-items: center;
       cursor: pointer;
+      margin-bottom: 0;
+      user-select: none;
+      font-size: 15px;
+      color: #333;
 
       input[type="checkbox"] {
-        margin-right: 8px;
-        transform: scale(1.2);
+        margin-right: 10px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
       }
     }
   }
 
   .form-actions {
     display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-top: 20px;
-  }
-}
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: flex-end;
 
-.address-form-card {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  padding: 25px;
-  margin-bottom: 30px;
-
-  h2 {
-    color: #333;
-    margin-bottom: 20px;
+    button {
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 500;
+    }
   }
 }
 
 .address-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
 
-  @media (max-width: 576px) {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
-  }
-}
-
-.no-addresses {
-  text-align: center;
-  padding: 40px 0;
-  grid-column: 1 / -1;
-
-  p {
-    margin-bottom: 15px;
-    color: #666;
   }
 }
 
 .address-card {
   background-color: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid #e0e4f1;
   border-radius: 8px;
-  padding: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
   }
 
   &.default {
     border-color: #4a6ee0;
-    box-shadow: 0 0 0 1px #4a6ee0;
-
-    .default-badge {
-      background-color: #4a6ee0;
-      color: white;
-      font-size: 12px;
-      padding: 3px 8px;
-      border-radius: 10px;
-      margin-left: 8px;
-    }
+    box-shadow: 0 0 0 1px #4a6ee0, 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   .address-card-content {
-    margin-bottom: 15px;
     padding: 20px;
+    flex: 1;
   }
 
   .address-name {
-    font-weight: bold;
-    font-size: 16px;
-    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+  }
 
-    .default-badge {
-      background-color: #4a6ee0;
-      color: white;
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      margin-left: 8px;
-      font-weight: normal;
-    }
+  .default-badge {
+    background-color: #4a6ee0;
+    color: white;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    text-transform: uppercase;
   }
 
   .address-details {
-    color: #666;
-    margin-bottom: 20px;
-    line-height: 1.5;
-
-    div {
-      margin-bottom: 5px;
-    }
-
-    .address-name {
-      font-weight: bold;
-      font-size: 16px;
-      margin-bottom: 10px;
-      color: #333;
-      display: flex;
-      align-items: center;
-    }
-
-    .address-line {
-      margin-bottom: 5px;
-      color: #555;
-    }
-
-    .address-phone {
-      margin-top: 10px;
-      font-weight: 500;
-    }
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 15px;
 
     p {
       margin: 0 0 5px;
-      color: #555;
-      font-size: 14px;
+      font-size: 15px;
 
       &:last-child {
         margin-bottom: 0;
@@ -225,69 +239,43 @@
   .address-card-actions {
     display: flex;
     gap: 15px;
+    padding: 15px 20px;
     border-top: 1px solid #eee;
-    padding-top: 10px;
+    background-color: #f9f9fa;
 
-    .text-danger {
-      color: #dc3545;
+    .btn-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #4a6ee0;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: color 0.2s;
 
       &:hover {
-        color: color.adjust(#dc3545, $lightness: -10%);
+        color: #3654b2;
+        text-decoration: underline;
+      }
+
+      &.text-danger {
+        color: #dc3545;
+
+        &:hover {
+          color: #b02a37;
+        }
       }
     }
   }
-
-  .address-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-
-    button {
-      flex: 1;
-      min-width: 80px;
-    }
-  }
 }
 
-.address-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px 15px;
+  border-radius: 4px;
   margin-bottom: 20px;
-
-  h2 {
-    margin: 0;
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 50px 20px;
-  text-align: center;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-
-  .empty-icon {
-    font-size: 48px;
-    color: #ccc;
-    margin-bottom: 20px;
-  }
-
-  h3 {
-    margin-bottom: 10px;
-    color: #333;
-  }
-
-  p {
-    color: #666;
-    margin-bottom: 20px;
-    font-size: 16px;
-  }
 }
 
 .loading-spinner {
@@ -300,56 +288,61 @@
   .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid rgba(0, 0, 0, 0.1);
+    border: 3px solid rgba(0, 0, 0, 0.1);
     border-radius: 50%;
-    border-top-color: #4a6ee0;
-    animation: spin 1s ease-in-out infinite;
-    margin-bottom: 15px;
+    border-top: 3px solid #4a6ee0;
+    animation: spin 1s linear infinite;
   }
 
   p {
+    margin-top: 15px;
     color: #666;
   }
 }
 
 @keyframes spin {
-  to {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
     transform: rotate(360deg);
   }
 }
 
 .btn-primary {
   background-color: #4a6ee0;
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
 
-  &:hover {
-    background-color: #3a5ecc;
+  &:hover:not(:disabled) {
+    background-color: #3a5bc8;
   }
 
   &:disabled {
-    background-color: #a0a0a0;
+    background-color: #a1b3e8;
     cursor: not-allowed;
   }
 }
 
 .btn-secondary {
-  background-color: #e0e0e0;
-  color: #333;
-  border: none;
+  background-color: #f1f3f8;
+  color: #4a6ee0;
+  border: 1px solid #e0e4f1;
   border-radius: 4px;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 
   &:hover {
-    background-color: #d0d0d0;
+    background-color: #e0e5f7;
   }
 }
 
@@ -361,6 +354,7 @@
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.2s;
 
   &:hover {
     background-color: #3a5ecc;
@@ -375,9 +369,10 @@
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.2s;
 
   &:hover {
-    background-color: color.adjust(#e74c3c, $lightness: -10%);
+    background-color: #c82333;
   }
 }
 
@@ -389,6 +384,7 @@
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.2s;
 
   &:hover {
     background-color: #218838;
@@ -401,14 +397,23 @@
 }
 
 .btn-danger {
-  background-color: #e74c3c;
+  background-color: #dc3545;
   color: white;
   border: none;
   border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s;
 
-  &:hover {
-    background-color: color.adjust(#e74c3c, $lightness: -10%);
+  &:hover:not(:disabled) {
+    background-color: #c82333;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 }
 
@@ -417,7 +422,11 @@
   color: #4a6ee0;
   border: 1px solid #4a6ee0;
   border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
     background-color: #4a6ee0;

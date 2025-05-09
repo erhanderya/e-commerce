@@ -1,179 +1,194 @@
 <div class="profile-container">
-  <h2>My Profile</h2>
-
-  <div *ngIf="loading" class="loading-spinner">
-    <div class="spinner"></div>
-    <p>Loading your profile...</p>
+  <div class="profile-sidebar">
+    <h3>My Account</h3>
+    <ul class="profile-nav">
+      <li><a routerLink="/profile" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Profile</a></li>
+      <li><a routerLink="/profile/address" routerLinkActive="active">My Addresses</a></li>
+      <li><a routerLink="/profile/orders" routerLinkActive="active">My Orders</a></li>
+    </ul>
   </div>
 
-  <div *ngIf="error" class="error-message">
-    {{ error }}
-  </div>
+  <div class="profile-main">
+    <h2>My Profile</h2>
 
-  <div *ngIf="!loading && user" class="profile-content">
-    <!-- User Profile Form -->
-    <div class="card profile-card">
-      <div class="card-header">
-        <h3>Personal Information</h3>
-      </div>
-      <div class="card-body">
-        <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
-          <div class="form-group">
-            <label for="firstName">First Name</label>
-            <input
-              type="text"
-              id="firstName"
-              formControlName="firstName"
-              class="form-control"
-              [class.is-invalid]="hasError(profileForm, 'firstName', 'required')"
-            >
-            <div class="invalid-feedback" *ngIf="hasError(profileForm, 'firstName', 'required')">
-              First name is required
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="lastName">Last Name</label>
-            <input
-              type="text"
-              id="lastName"
-              formControlName="lastName"
-              class="form-control"
-              [class.is-invalid]="hasError(profileForm, 'lastName', 'required')"
-            >
-            <div class="invalid-feedback" *ngIf="hasError(profileForm, 'lastName', 'required')">
-              Last name is required
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              formControlName="email"
-              class="form-control"
-              [class.is-invalid]="hasError(profileForm, 'email', 'required') || hasError(profileForm, 'email', 'email')"
-            >
-            <div class="invalid-feedback" *ngIf="hasError(profileForm, 'email', 'required')">
-              Email is required
-            </div>
-            <div class="invalid-feedback" *ngIf="hasError(profileForm, 'email', 'email')">
-              Please enter a valid email address
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="phone">Phone Number (Optional)</label>
-            <input
-              type="tel"
-              id="phone"
-              formControlName="phone"
-              class="form-control"
-            >
-          </div>
-
-          <div class="form-actions">
-            <button
-              type="submit"
-              class="btn btn-primary"
-              [disabled]="profileForm.invalid || updating"
-            >
-              <span *ngIf="updating" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              {{ updating ? 'Updating...' : 'Update Profile' }}
-            </button>
-          </div>
-        </form>
-      </div>
+    <div *ngIf="loading" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading your profile...</p>
     </div>
 
-    <!-- Password Change Section -->
-    <div class="card password-card">
-      <div class="card-header">
-        <h3>Security</h3>
-      </div>
-      <div class="card-body">
-        <button
-          class="btn btn-outline-secondary mb-3"
-          (click)="togglePasswordForm()"
-        >
-          {{ showPasswordForm ? 'Cancel' : 'Change Password' }}
-        </button>
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
 
-        <div *ngIf="showPasswordForm" class="password-form">
-          <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
+    <div *ngIf="!loading && user" class="profile-content">
+      <!-- User Profile Form -->
+      <div class="card profile-card">
+        <div class="card-header">
+          <h3>Personal Information</h3>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
             <div class="form-group">
-              <label for="currentPassword">Current Password</label>
+              <label for="firstName">First Name</label>
               <input
-                type="password"
-                id="currentPassword"
-                formControlName="currentPassword"
+                type="text"
+                id="firstName"
+                formControlName="firstName"
                 class="form-control"
-                [class.is-invalid]="hasError(passwordForm, 'currentPassword', 'required')"
+                [class.is-invalid]="hasError(profileForm, 'firstName', 'required')"
               >
-              <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'currentPassword', 'required')">
-                Current password is required
+              <div class="invalid-feedback" *ngIf="hasError(profileForm, 'firstName', 'required')">
+                First name is required
               </div>
             </div>
 
             <div class="form-group">
-              <label for="newPassword">New Password</label>
+              <label for="lastName">Last Name</label>
               <input
-                type="password"
-                id="newPassword"
-                formControlName="newPassword"
+                type="text"
+                id="lastName"
+                formControlName="lastName"
                 class="form-control"
-                [class.is-invalid]="hasError(passwordForm, 'newPassword', 'required') ||
-                                   hasError(passwordForm, 'newPassword', 'minlength')"
+                [class.is-invalid]="hasError(profileForm, 'lastName', 'required')"
               >
-              <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'newPassword', 'required')">
-                New password is required
-              </div>
-              <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'newPassword', 'minlength')">
-                Password must be at least 8 characters long
+              <div class="invalid-feedback" *ngIf="hasError(profileForm, 'lastName', 'required')">
+                Last name is required
               </div>
             </div>
 
             <div class="form-group">
-              <label for="confirmPassword">Confirm New Password</label>
+              <label for="username">Username</label>
               <input
-                type="password"
-                id="confirmPassword"
-                formControlName="confirmPassword"
+                type="text"
+                id="username"
+                formControlName="username"
                 class="form-control"
-                [class.is-invalid]="hasError(passwordForm, 'confirmPassword', 'required') || passwordForm.hasError('mismatch')"
+                [class.is-invalid]="hasError(profileForm, 'username', 'required')"
               >
-              <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'confirmPassword', 'required')">
-                Please confirm your new password
+              <div class="invalid-feedback" *ngIf="hasError(profileForm, 'username', 'required')">
+                Username is required
               </div>
-              <div class="invalid-feedback" *ngIf="passwordForm.hasError('mismatch')">
-                Passwords don't match
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                formControlName="email"
+                class="form-control"
+                [class.is-invalid]="hasError(profileForm, 'email', 'required') || hasError(profileForm, 'email', 'email')"
+              >
+              <div class="invalid-feedback" *ngIf="hasError(profileForm, 'email', 'required')">
+                Email is required
+              </div>
+              <div class="invalid-feedback" *ngIf="hasError(profileForm, 'email', 'email')">
+                Please enter a valid email address
               </div>
             </div>
 
             <div class="form-actions">
               <button
                 type="submit"
-                class="btn btn-primary"
-                [disabled]="passwordForm.invalid || changingPassword"
+                class="btn-primary"
+                [disabled]="profileForm.invalid || updating"
               >
-                <span *ngIf="changingPassword" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                {{ changingPassword ? 'Changing Password...' : 'Change Password' }}
+                <span *ngIf="updating" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                {{ updating ? 'Updating...' : 'Update Profile' }}
               </button>
             </div>
           </form>
         </div>
       </div>
-    </div>
 
-    <!-- Order History Section Placeholder -->
-    <div class="card order-history-card">
-      <div class="card-header">
-        <h3>Order History</h3>
+      <!-- Password Change Section -->
+      <div class="card password-card">
+        <div class="card-header">
+          <h3>Security</h3>
+        </div>
+        <div class="card-body">
+          <button
+            class="password-toggle-btn"
+            (click)="togglePasswordForm()"
+          >
+            🔒 {{ showPasswordForm ? 'Cancel' : 'Change Password' }}
+          </button>
+
+          <div *ngIf="showPasswordForm" class="password-form">
+            <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
+              <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input
+                  type="password"
+                  id="currentPassword"
+                  formControlName="currentPassword"
+                  class="form-control"
+                  [class.is-invalid]="hasError(passwordForm, 'currentPassword', 'required')"
+                >
+                <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'currentPassword', 'required')">
+                  Current password is required
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  formControlName="newPassword"
+                  class="form-control"
+                  [class.is-invalid]="hasError(passwordForm, 'newPassword', 'required') ||
+                                    hasError(passwordForm, 'newPassword', 'minlength')"
+                >
+                <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'newPassword', 'required')">
+                  New password is required
+                </div>
+                <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'newPassword', 'minlength')">
+                  Password must be at least 8 characters long
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  formControlName="confirmPassword"
+                  class="form-control"
+                  [class.is-invalid]="hasError(passwordForm, 'confirmPassword', 'required') || passwordForm.hasError('mismatch')"
+                >
+                <div class="invalid-feedback" *ngIf="hasError(passwordForm, 'confirmPassword', 'required')">
+                  Please confirm your new password
+                </div>
+                <div class="invalid-feedback" *ngIf="passwordForm.hasError('mismatch')">
+                  Passwords don't match
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button
+                  type="submit"
+                  class="btn-primary"
+                  [disabled]="passwordForm.invalid || changingPassword"
+                >
+                  <span *ngIf="changingPassword" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  {{ changingPassword ? 'Changing Password...' : 'Save New Password' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
-      <div class="card-body">
-        <p>View your recent orders and track deliveries.</p>
-        <a routerLink="/my-orders" class="btn btn-outline-primary">View Orders</a>
+
+      <!-- Order History Section Placeholder -->
+      <div class="card order-history-card">
+        <div class="card-header">
+          <h3>Order History</h3>
+        </div>
+        <div class="card-body">
+          <p>View your recent orders and track deliveries.</p>
+          <a routerLink="/orders" class="btn-outline">View Orders</a>
+        </div>
       </div>
     </div>
   </div>
