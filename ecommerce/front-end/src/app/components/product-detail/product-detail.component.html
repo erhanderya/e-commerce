@@ -26,10 +26,10 @@
                 <span class="rating-value">{{ review.rating }} Star{{ review.rating > 1 ? 's' : '' }}</span>
             </span>
             <!-- Show delete button if user is admin or the review belongs to the current user -->
-            <button 
-              type="button" 
-              class="delete-review" 
-              *ngIf="isLoggedIn && (isAdminUser() || review.userId === currentUserId)" 
+            <button
+              type="button"
+              class="delete-review"
+              *ngIf="isLoggedIn && (isAdminUser() || review.userId === currentUserId)"
               (click)="deleteReviewByUserId(review.userId)">
               Delete Review
             </button>
@@ -45,6 +45,9 @@
 
     <div class="review-form-section" *ngIf="isLoggedIn">
       <h3>{{ hasReviewed ? 'Edit Your Review' : 'Write a Review' }}</h3>
+      <div class="info-message">
+        <p><i>Note: You can only review products you have purchased</i></p>
+      </div>
       <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
         <div class="form-group">
           <label for="rating">Rating</label>

@@ -27,6 +27,9 @@ public class ReviewService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private OrderService orderService;
+    
     /**
      * Get all reviews
      */
@@ -71,6 +74,12 @@ public class ReviewService {
         List<Review> existingReviews = reviewRepository.findByProductIdAndUserId(productId, userId);
         if (!existingReviews.isEmpty()) {
             throw new IllegalStateException("User has already reviewed this product");
+        }
+        
+        // Check if user has purchased the product
+        boolean hasPurchased = orderService.hasUserPurchasedProduct(userId, productId);
+        if (!hasPurchased) {
+            throw new IllegalStateException("Cannot review a product you haven't purchased");
         }
         
         // Set relationships
