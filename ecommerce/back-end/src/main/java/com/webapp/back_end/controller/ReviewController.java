@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -143,15 +144,13 @@ public class ReviewController {
             // Create the review
             Review createdReview = reviewService.createReview(review, productId, userId);
             return ResponseEntity.ok(createdReview);
-        } catch (RuntimeException e) { // Catch specific runtime exceptions like from getUserFromAuthentication
-             e.printStackTrace();
-             errorResponse.put("error", e.getMessage()); // Use the specific error message
-             // Consider if 401 is always correct here, maybe 400 or 404 depending on the RuntimeException
-             return ResponseEntity.status(401).body(errorResponse); // Or appropriate status based on exception type
+        } catch (IllegalStateException e) {
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
         } catch (Exception e) {
-            e.printStackTrace(); // Print full stack trace to server logs
-            errorResponse.put("error", "Failed to create review due to an internal server error."); // More generic message
-            return ResponseEntity.internalServerError().body(errorResponse); // Use 500 for unexpected server errors
+            e.printStackTrace();
+            errorResponse.put("error", "Failed to create review: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

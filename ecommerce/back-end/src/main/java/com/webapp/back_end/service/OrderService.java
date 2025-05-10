@@ -158,4 +158,14 @@ public class OrderService {
         
         return orderRepository.save(order);
     }
+
+    /**
+     * Check if a user has purchased a specific product
+     * @param userId the user's ID
+     * @param productId the product's ID
+     * @return true if the user has purchased the product, false otherwise
+     */
+    public boolean hasUserPurchasedProduct(Long userId, Long productId) {
+        return orderRepository.hasUserPurchasedProduct(userId, productId);
+    }
 }

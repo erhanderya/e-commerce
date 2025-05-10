@@ -1,9 +1,10 @@
+import { createRequire } from 'module';const require = createRequire(import.meta.url);
 import {
   DOCUMENT,
   XhrFactory,
   isPlatformServer,
   parseCookieValue
-} from "./chunk-NV5NMVNX.js";
+} from "./chunk-BKVBDJOH.js";
 import {
   APP_BOOTSTRAP_LISTENER,
   ApplicationRef,
@@ -37,25 +38,23 @@ import {
   ɵɵdefineInjector,
   ɵɵdefineNgModule,
   ɵɵinject
-} from "./chunk-2C5FQOBO.js";
+} from "./chunk-SY4CU36N.js";
 import {
-  Observable,
-  concatMap,
-  filter,
-  finalize,
-  from,
-  map,
-  of,
-  switchMap,
-  tap
-} from "./chunk-4S3KYZTJ.js";
+  require_cjs
+} from "./chunk-ZUJ64LXG.js";
+import {
+  require_operators
+} from "./chunk-XCIYP5SE.js";
 import {
   __async,
   __objRest,
-  __spreadValues
-} from "./chunk-WDMUDEB6.js";
+  __spreadValues,
+  __toESM
+} from "./chunk-YHCV7DAQ.js";
 
 // node_modules/@angular/common/fesm2022/module-CYx9OwZ_.mjs
+var import_operators = __toESM(require_operators(), 1);
+var import_rxjs = __toESM(require_cjs(), 1);
 var HttpHandler = class {
 };
 var HttpBackend = class {
@@ -1080,30 +1079,30 @@ var HttpClient = class _HttpClient {
         transferCache: options.transferCache
       });
     }
-    const events$ = of(req).pipe(concatMap((req2) => this.handler.handle(req2)));
+    const events$ = (0, import_rxjs.of)(req).pipe((0, import_operators.concatMap)((req2) => this.handler.handle(req2)));
     if (first instanceof HttpRequest || options.observe === "events") {
       return events$;
     }
-    const res$ = events$.pipe(filter((event) => event instanceof HttpResponse));
+    const res$ = events$.pipe((0, import_operators.filter)((event) => event instanceof HttpResponse));
     switch (options.observe || "body") {
       case "body":
         switch (req.responseType) {
           case "arraybuffer":
-            return res$.pipe(map((res) => {
+            return res$.pipe((0, import_operators.map)((res) => {
               if (res.body !== null && !(res.body instanceof ArrayBuffer)) {
                 throw new RuntimeError(2806, ngDevMode && "Response is not an ArrayBuffer.");
               }
               return res.body;
             }));
           case "blob":
-            return res$.pipe(map((res) => {
+            return res$.pipe((0, import_operators.map)((res) => {
               if (res.body !== null && !(res.body instanceof Blob)) {
                 throw new RuntimeError(2807, ngDevMode && "Response is not a Blob.");
               }
               return res.body;
             }));
           case "text":
-            return res$.pipe(map((res) => {
+            return res$.pipe((0, import_operators.map)((res) => {
               if (res.body !== null && typeof res.body !== "string") {
                 throw new RuntimeError(2808, ngDevMode && "Response is not a string.");
               }
@@ -1111,7 +1110,7 @@ var HttpClient = class _HttpClient {
             }));
           case "json":
           default:
-            return res$.pipe(map((res) => res.body));
+            return res$.pipe((0, import_operators.map)((res) => res.body));
         }
       case "response":
         return res$;
@@ -1243,7 +1242,7 @@ var FetchBackend = class _FetchBackend {
   })?.fetch ?? ((...args) => globalThis.fetch(...args));
   ngZone = inject(NgZone);
   handle(request) {
-    return new Observable((observer) => {
+    return new import_rxjs.Observable((observer) => {
       const aborter = new AbortController();
       this.doRequest(request, aborter.signal, observer).then(noop, (error) => observer.error(new HttpErrorResponse({
         error
@@ -1454,7 +1453,7 @@ function legacyInterceptorFnFactory() {
     const contributeToStability = inject(REQUESTS_CONTRIBUTE_TO_STABILITY);
     if (contributeToStability) {
       const taskId = pendingTasks.add();
-      return chain(req, handler).pipe(finalize(() => pendingTasks.remove(taskId)));
+      return chain(req, handler).pipe((0, import_operators.finalize)(() => pendingTasks.remove(taskId)));
     } else {
       return chain(req, handler);
     }
@@ -1487,7 +1486,7 @@ var HttpInterceptorHandler = class _HttpInterceptorHandler extends HttpHandler {
     }
     if (this.contributeToStability) {
       const taskId = this.pendingTasks.add();
-      return this.chain(initialRequest, (downstreamRequest) => this.backend.handle(downstreamRequest)).pipe(finalize(() => this.pendingTasks.remove(taskId)));
+      return this.chain(initialRequest, (downstreamRequest) => this.backend.handle(downstreamRequest)).pipe((0, import_operators.finalize)(() => this.pendingTasks.remove(taskId)));
     } else {
       return this.chain(initialRequest, (downstreamRequest) => this.backend.handle(downstreamRequest));
     }
@@ -1555,7 +1554,7 @@ var JsonpClientBackend = class _JsonpClientBackend {
     if (req.headers.keys().length > 0) {
       throw new Error(JSONP_ERR_HEADERS_NOT_SUPPORTED);
     }
-    return new Observable((observer) => {
+    return new import_rxjs.Observable((observer) => {
       const callback = this.nextCallback();
       const url = req.urlWithParams.replace(/=JSONP_CALLBACK(&|$)/, `=${callback}$1`);
       const node = this.document.createElement("script");
@@ -1704,9 +1703,9 @@ var HttpXhrBackend = class _HttpXhrBackend {
       throw new RuntimeError(-2800, (typeof ngDevMode === "undefined" || ngDevMode) && `Cannot make a JSONP request without JSONP support. To fix the problem, either add the \`withJsonpSupport()\` call (if \`provideHttpClient()\` is used) or import the \`HttpClientJsonpModule\` in the root NgModule.`);
     }
     const xhrFactory = this.xhrFactory;
-    const source = xhrFactory.ɵloadImpl ? from(xhrFactory.ɵloadImpl()) : of(null);
-    return source.pipe(switchMap(() => {
-      return new Observable((observer) => {
+    const source = xhrFactory.ɵloadImpl ? (0, import_rxjs.from)(xhrFactory.ɵloadImpl()) : (0, import_rxjs.of)(null);
+    return source.pipe((0, import_operators.switchMap)(() => {
+      return new import_rxjs.Observable((observer) => {
         const xhr = xhrFactory.build();
         xhr.open(req.method, req.urlWithParams);
         if (req.withCredentials) {
@@ -1908,7 +1907,7 @@ var HttpXsrfCookieExtractor = class _HttpXsrfCookieExtractor {
     this.cookieName = cookieName;
   }
   getToken() {
-    if (false) {
+    if (true) {
       return null;
     }
     const cookieString = this.doc.cookie || "";
@@ -2221,6 +2220,8 @@ var HttpClientJsonpModule = class _HttpClientJsonpModule {
 })();
 
 // node_modules/@angular/common/fesm2022/http.mjs
+var import_rxjs2 = __toESM(require_cjs(), 1);
+var import_operators2 = __toESM(require_operators(), 1);
 var httpResource = (() => {
   const jsonFn = makeHttpResourceFn("json");
   jsonFn.arrayBuffer = makeHttpResourceFn("arraybuffer");
@@ -2365,10 +2366,10 @@ function transferCacheInterceptorFn(req, next) {
   const originMap = inject(HTTP_TRANSFER_CACHE_ORIGIN_MAP, {
     optional: true
   });
-  if (originMap) {
+  if (false) {
     throw new RuntimeError(2803, ngDevMode && "Angular detected that the `HTTP_TRANSFER_CACHE_ORIGIN_MAP` token is configured and present in the client side code. Please ensure that this token is only provided in the server code of the application.");
   }
-  const requestUrl = false ? mapRequestOriginUrl(req.url, originMap) : req.url;
+  const requestUrl = originMap ? mapRequestOriginUrl(req.url, originMap) : req.url;
   const storeKey = makeCacheKey(req, requestUrl);
   const response = transferState.get(storeKey, null);
   let headersToInclude = globalOptions.includeHeaders;
@@ -2397,7 +2398,7 @@ function transferCacheInterceptorFn(req, next) {
     if (typeof ngDevMode === "undefined" || ngDevMode) {
       headers = appendMissingHeadersDetection(req.url, headers, headersToInclude ?? []);
     }
-    return of(new HttpResponse({
+    return (0, import_rxjs2.of)(new HttpResponse({
       body,
       headers,
       status,
@@ -2405,8 +2406,8 @@ function transferCacheInterceptorFn(req, next) {
       url
     }));
   }
-  return next(req).pipe(tap((event) => {
-    if (event instanceof HttpResponse && true && false) {
+  return next(req).pipe((0, import_operators2.tap)((event) => {
+    if (event instanceof HttpResponse && true && true) {
       transferState.set(storeKey, {
         [BODY]: event.body,
         [HEADERS]: getFilteredHeaders(event.headers, headersToInclude),
@@ -2420,6 +2421,19 @@ function transferCacheInterceptorFn(req, next) {
 }
 function hasAuthHeaders(req) {
   return req.headers.has("authorization") || req.headers.has("proxy-authorization");
+}
+function getFilteredHeaders(headers, includeHeaders) {
+  if (!includeHeaders) {
+    return {};
+  }
+  const headersMap = {};
+  for (const key of includeHeaders) {
+    const values = headers.getAll(key);
+    if (values !== null) {
+      headersMap[key] = values;
+    }
+  }
+  return headersMap;
 }
 function sortAndConcatParams(params) {
   return [...params.keys()].sort().map((k) => `${k}=${params.getAll(k)}`).join("&");
@@ -2497,6 +2511,22 @@ function appendMissingHeadersDetection(url, headers, headersToInclude) {
     }
   });
 }
+function mapRequestOriginUrl(url, originMap) {
+  const origin = new URL(url, "resolve://").origin;
+  const mappedOrigin = originMap[origin];
+  if (!mappedOrigin) {
+    return url;
+  }
+  if (typeof ngDevMode === "undefined" || ngDevMode) {
+    verifyMappedOrigin(mappedOrigin);
+  }
+  return url.replace(origin, mappedOrigin);
+}
+function verifyMappedOrigin(url) {
+  if (new URL(url, "resolve://").pathname !== "/") {
+    throw new RuntimeError(2804, `Angular detected a URL with a path segment in the value provided for the \`HTTP_TRANSFER_CACHE_ORIGIN_MAP\` token: ${url}. The map should only contain origins without any other segments.`);
+  }
+}
 
 export {
   HttpHandler,
@@ -2549,4 +2579,4 @@ export {
    * License: MIT
    *)
 */
-//# sourceMappingURL=chunk-3W7ELQEL.js.map
+//# sourceMappingURL=chunk-VHR53J2C.js.map

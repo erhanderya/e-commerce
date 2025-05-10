@@ -17,7 +17,7 @@ import { User } from '../../models/user.model';
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.scss']
-})   
+})
 export class ProductDetailComponent implements OnInit {
   @ViewChild('errorTemplate') errorTemplate!: TemplateRef<any>;
 
@@ -58,7 +58,7 @@ export class ProductDetailComponent implements OnInit {
     // Check login status first
     this.isLoggedIn = this.authService.isLoggedIn();
     this.currentUserId = this.authService.getCurrentUserId();
-    
+
     // Get the product ID from the route
     this.route.paramMap.subscribe(params => {
       const productId = Number(params.get('id'));
@@ -67,14 +67,14 @@ export class ProductDetailComponent implements OnInit {
         this.isLoading = false;
         return;
       }
-      
+
       this.loadProduct(productId);
     });
   }
 
   loadProduct(productId: number): void {
     this.isLoading = true;
-    
+
     this.productService.getProduct(productId).subscribe({
       next: (product) => {
         this.product = product;
@@ -94,14 +94,14 @@ export class ProductDetailComponent implements OnInit {
       next: (reviews) => {
         this.reviews = reviews;
         this.isLoading = false;
-        
+
         // Check if the current user has already reviewed this product
         if (this.isLoggedIn && this.currentUserId) {
           const existingReview = this.reviews.find(r => r.userId === this.currentUserId);
           if (existingReview) {
             this.hasReviewed = true;
             this.userReview = existingReview;
-            
+
             // Update form with existing review data
             this.reviewForm.patchValue({
               rating: existingReview.rating,
@@ -109,7 +109,7 @@ export class ProductDetailComponent implements OnInit {
             });
           }
         }
-        
+
         // Manually trigger change detection after all updates
         this.cdr.detectChanges();
       },
@@ -164,7 +164,12 @@ export class ProductDetailComponent implements OnInit {
           this.loadReviews(this.product?.id as number);
         },
         error: (err) => {
-          this.alertService.error(err.message || 'Failed to submit review');
+          // Check if this is the "not purchased" error
+          if (err.error && err.error.error === 'Cannot review a product you haven\'t purchased') {
+            this.alertService.error('You can only review products you have purchased.');
+          } else {
+            this.alertService.error(err.error?.error || 'Failed to submit review');
+          }
         }
       });
     }
@@ -180,7 +185,7 @@ export class ProductDetailComponent implements OnInit {
 
     // Check if user has permission to delete this review
     const canDelete = this.authService.isAdmin() || userId === this.currentUserId;
-    
+
     if (!canDelete) {
         this.alertService.error('You do not have permission to delete this review.');
         return;
@@ -192,14 +197,14 @@ export class ProductDetailComponent implements OnInit {
                 this.alertService.success('The review has been deleted successfully.');
                 // Update the reviews array to remove the deleted review
                 this.reviews = this.reviews.filter(review => review.id !== reviewToDelete.id);
-                
+
                 // If the deleted review was the current user's, reset the form
                 if (userId === this.currentUserId) {
                     this.hasReviewed = false;
                     this.userReview = null;
                     this.reviewForm.reset({rating: 5, comment: ''});
                 }
-                
+
                 this.cdr.detectChanges(); // Ensure UI updates
             },
             error: (err) => {
