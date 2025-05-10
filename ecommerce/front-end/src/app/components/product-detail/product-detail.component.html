@@ -5,6 +5,17 @@
       <img [src]="product.image_url" [alt]="product.name" class="product-image">
       <div class="product-details">
         <h1>{{ product.name }}</h1>
+        <div class="product-rating" *ngIf="product.averageRating !== undefined">
+          <span class="rating-stars">
+            <ng-container *ngFor="let star of createStarArray(product.averageRating)">
+              <i class="star"
+                 [class.filled]="star === 1"
+                 [class.half-filled]="star === 0.5">★</i>
+            </ng-container>
+          </span>
+          <span class="rating-value">{{ product.averageRating | number:'1.1-1' }} Star{{ product.averageRating !== 1 ? 's' : '' }}</span>
+          <span class="review-count">({{ reviews.length }} Review{{ reviews.length !== 1 ? 's' : '' }})</span>
+        </div>
         <p class="description">{{ product.description }}</p>
         <p class="price">Price: ${{ product.price }}</p>
         <p class="stock" *ngIf="product.stock_quantity > 0">In Stock: {{ product.stock_quantity }}</p>
@@ -21,17 +32,19 @@
             <span class="review-user">{{ review.user?.username }}</span>
             <span class="review-rating">
               <ng-container *ngFor="let star of createStarArray(review.rating)">
-                <i class="star" [class.filled]="star === 1">★</i>
+                <i class="star"
+                   [class.filled]="star === 1"
+                   [class.half-filled]="star === 0.5">★</i>
               </ng-container>
                 <span class="rating-value">{{ review.rating }} Star{{ review.rating > 1 ? 's' : '' }}</span>
             </span>
-            <!-- Show delete button if user is admin or the review belongs to the current user -->
+            <!-- Show delete button only to authorized users (review owner, admin, or seller) -->
             <button
               type="button"
               class="delete-review"
-              *ngIf="isLoggedIn && (isAdminUser() || review.userId === currentUserId)"
-              (click)="deleteReviewByUserId(review.userId)">
-              Delete Review
+              *ngIf="isLoggedIn && (review.userId == currentUserId || isAdminUser() || isProductSeller())"
+              (click)="deleteReview(review.id)">
+              Delete
             </button>
           </div>
           <p class="review-comment">{{ review.comment }}</p>

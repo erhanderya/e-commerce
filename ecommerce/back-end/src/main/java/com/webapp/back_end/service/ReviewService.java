@@ -59,19 +59,29 @@ public class ReviewService {
     }
     
     /**
-     * Calculate the average rating for a product
+     * Calculate the average rating for a product and update the product's average rating field
      */
     public Double calculateAverageRating(Long productId) {
         List<Review> reviews = reviewRepository.findByProductId(productId);
-        if (reviews.isEmpty()) {
-            return 0.0;
+        
+        // Get the product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new NoSuchElementException("Product not found with ID: " + productId));
+        
+        Double averageRating = 0.0;
+        if (!reviews.isEmpty()) {
+            double sum = reviews.stream()
+                    .mapToInt(Review::getRating)
+                    .sum();
+            
+            averageRating = sum / reviews.size();
         }
         
-        double sum = reviews.stream()
-                .mapToInt(Review::getRating)
-                .sum();
+        // Update the product's average rating
+        product.setAverageRating(averageRating);
+        productRepository.save(product);
         
-        return sum / reviews.size();
+        return averageRating;
     }
     
     /**
@@ -105,8 +115,13 @@ public class ReviewService {
         // Set created date
         review.setCreatedAt(LocalDateTime.now());
         
-        // Save and return
-        return reviewRepository.save(review);
+        // Save the review
+        Review savedReview = reviewRepository.save(review);
+        
+        // Update the product's average rating
+        calculateAverageRating(productId);
+        
+        return savedReview;
     }
     
     /**
@@ -136,8 +151,13 @@ public class ReviewService {
             review.setComment(updatedReview.getComment());
         }
         
-        // Save and return
-        return reviewRepository.save(review);
+        // Save the updated review
+        Review savedReview = reviewRepository.save(review);
+        
+        // Update the product's average rating
+        calculateAverageRating(review.getProduct().getId());
+        
+        return savedReview;
     }
     
     /**
@@ -146,19 +166,28 @@ public class ReviewService {
     public void deleteReview(Long reviewId, Long userId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new NoSuchElementException("Review not found with ID: " + reviewId));
-                
-        // Get the user
+        
+        // Get the product ID to recalculate average rating after deletion
+        Long productId = review.getProduct().getId();
+        
+        // Get the user who is attempting to delete the review
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
         
-        // Check if the user is the author of the review or an admin
+        // Check authorization
         boolean isAdmin = user.getRole() == com.webapp.back_end.model.Role.ADMIN;
         boolean isAuthor = review.getUser().getId().equals(userId);
+        boolean isSeller = user.getRole() == com.webapp.back_end.model.Role.SELLER && 
+                          review.getProduct().getSeller().getId().equals(userId);
         
-        if (!isAuthor && !isAdmin) {
-            throw new SecurityException("User not authorized to delete this review");
+        if (!isAdmin && !isAuthor && !isSeller) {
+            throw new SecurityException("Not authorized to delete this review. Only the review author, product seller, or admins can delete reviews.");
         }
         
+        // Delete the review
         reviewRepository.delete(review);
+        
+        // Recalculate and update the product's average rating
+        calculateAverageRating(productId);
     }
 }

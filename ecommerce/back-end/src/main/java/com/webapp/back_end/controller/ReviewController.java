@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -222,18 +223,21 @@ public class ReviewController {
     // Delete a review
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteReview(@PathVariable Long id, Authentication authentication) {
+        Map<String, String> response = new HashMap<>();
         try {
             User user = getUserFromAuthentication(authentication);
             reviewService.deleteReview(id, user.getId());
-            return ResponseEntity.ok().build();
+            response.put("message", "Review successfully deleted");
+            return ResponseEntity.ok(response);
         } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
-            return ResponseEntity.status(403).body(response);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        } catch (NoSuchElementException e) {
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     

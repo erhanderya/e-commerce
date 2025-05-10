@@ -33,6 +33,9 @@ public class Product {
 
     private Integer stock_quantity;
 
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     @JsonIgnoreProperties("products")
@@ -119,5 +122,14 @@ public class Product {
 
     public void setSeller(User seller) {
         this.seller = seller;
+    }
+
+    // Add getter and setter for average rating
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
     }
 }

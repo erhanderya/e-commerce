@@ -202,45 +202,98 @@ export class ProductDetailComponent implements OnInit {
     }
   }
 
+  deleteReview(reviewId: number | undefined): void {
+    if (!reviewId) {
+      this.alertService.warn('Review ID is missing.');
+      return;
+    }
+
+    if (!this.isLoggedIn) {
+      this.alertService.error('You must be logged in to delete reviews.');
+      return;
+    }
+
+    // Check authorization on client side first (to avoid unnecessary API calls)
+    const reviewToDelete = this.reviews.find(r => r.id === reviewId);
+    if (!reviewToDelete) {
+      this.alertService.warn('Review not found.');
+      return;
+    }
+
+    // Debug logs to see why user can't delete their own review
+    console.log('Review user ID:', reviewToDelete.userId);
+    console.log('Current user ID:', this.currentUserId);
+    console.log('Are they equal?', reviewToDelete.userId === this.currentUserId);
+
+    // Fix: Make sure we're comparing numbers, not strings
+    const isAuthor = Number(reviewToDelete.userId) === Number(this.currentUserId);
+    const isAdmin = this.isAdminUser();
+    const isSeller = this.isProductSeller();
+
+    console.log('Is author?', isAuthor);
+    console.log('Is admin?', isAdmin);
+    console.log('Is seller?', isSeller);
+
+    if (!isAuthor && !isAdmin && !isSeller) {
+      this.alertService.error('You do not have permission to delete this review. Only the review author, product seller, or admins can delete reviews.');
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this review?')) {
+      this.reviewService.deleteReview(reviewId).subscribe({
+        next: () => {
+          this.alertService.success('Review has been deleted successfully.');
+
+          // Update the reviews list
+          this.reviews = this.reviews.filter(r => r.id !== reviewId);
+
+          // If it was user's own review, reset the form and review status
+          if (isAuthor) {
+            this.hasReviewed = false;
+            this.userReview = null;
+            this.reviewForm.reset({rating: 5, comment: ''});
+          }
+
+          // Reload the product to get updated average rating
+          if (this.product?.id) {
+            this.productService.getProduct(this.product.id).subscribe({
+              next: (updatedProduct) => {
+                this.product = updatedProduct;
+                this.cdr.detectChanges();
+              }
+            });
+          }
+        },
+        error: (err) => {
+          console.error('Error deleting review:', err);
+          // First check for specific known errors
+          if (err.status === 403) {
+            this.alertService.error('You do not have permission to delete this review.');
+          } else if (err.status === 404) {
+            this.alertService.error('The review could not be found. It may have been already deleted.');
+          } else if (err.error && err.error.error) {
+            // If there's a specific error message from the server
+            this.alertService.error(err.error.error);
+          } else {
+            // Generic error message as fallback
+            this.alertService.error('Failed to delete review. Please try again later.');
+          }
+        }
+      });
+    }
+  }
+
+  // Keep existing deleteReviewByUserId method for backward compatibility
   deleteReviewByUserId(userId: number): void {
     const reviewToDelete = this.reviews.find(review => review.userId === userId);
 
     if (!reviewToDelete?.id) {
-        this.alertService.warn('Review not found for the specified user.');
-        return;
+      this.alertService.warn('Review not found for the specified user.');
+      return;
     }
 
-    // Check if user has permission to delete this review
-    const canDelete = this.authService.isAdmin() || userId === this.currentUserId;
-
-    if (!canDelete) {
-        this.alertService.error('You do not have permission to delete this review.');
-        return;
-    }
-
-    if (confirm('Are you sure you want to delete this review?')) {
-        this.reviewService.deleteReview(reviewToDelete.id).subscribe({
-            next: () => {
-                this.alertService.success('The review has been deleted successfully.');
-                // Update the reviews array to remove the deleted review
-                this.reviews = this.reviews.filter(review => review.id !== reviewToDelete.id);
-
-                // If the deleted review was the current user's, reset the form
-                if (userId === this.currentUserId) {
-                    this.hasReviewed = false;
-                    this.userReview = null;
-                    this.reviewForm.reset({rating: 5, comment: ''});
-                }
-
-                this.cdr.detectChanges(); // Ensure UI updates
-            },
-            error: (err) => {
-                console.error('Delete review error:', err);
-                this.alertService.error(err.message || 'Failed to delete review. Please try again.');
-            }
-        });
-    }
-}
+    this.deleteReview(reviewToDelete.id);
+  }
 
   addToCart(): void {
     if (!this.isLoggedIn) {
@@ -273,10 +326,38 @@ export class ProductDetailComponent implements OnInit {
         return this.authService.isAdmin();
     }
 
+    // Helper method to check if the current user is the seller of this product
+    isProductSeller(): boolean {
+        if (!this.isLoggedIn || !this.product || !this.product.seller || !this.currentUserId) {
+            return false;
+        }
+        return this.product.seller.id === this.currentUserId;
+    }
 
   // Helper method for star ratings display
-  createStarArray(rating: number): number[] {
-    // Create array of 5 elements and fill with either 1 (filled star) or 0 (empty star)
-    return Array(5).fill(0).map((_, i) => i < rating ? 1 : 0);
+  createStarArray(rating: number | undefined): number[] {
+    if (rating === undefined) {
+      return Array(5).fill(0);
+    }
+
+    // Round to nearest 0.5 for half-star display
+    const roundedRating = Math.round(rating * 2) / 2;
+    const fullStars = Math.floor(roundedRating);
+    const hasHalfStar = roundedRating % 1 !== 0;
+
+    // Create array with 1s for filled stars and 0s for empty stars
+    const stars = Array(5).fill(0);
+
+    // Fill the full stars
+    for (let i = 0; i < fullStars; i++) {
+      stars[i] = 1;
+    }
+
+    // Add half star if needed
+    if (hasHalfStar && fullStars < 5) {
+      stars[fullStars] = 0.5;
+    }
+
+    return stars;
   }
 }

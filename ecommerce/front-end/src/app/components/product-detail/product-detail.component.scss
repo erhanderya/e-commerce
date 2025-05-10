@@ -147,3 +147,48 @@ button.delete-review {
 button.delete-review:hover {
   background-color: #c0392b;
 }
+
+.product-rating {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.rating-stars {
+  display: inline-flex;
+  margin-right: 8px;
+}
+
+.star {
+  color: #e0e0e0;
+  font-size: 1.2rem;
+}
+
+.star.filled {
+  color: #f1c40f;
+}
+
+.star.half-filled {
+  position: relative;
+  color: #e0e0e0;
+}
+
+.star.half-filled::before {
+  content: '★';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  overflow: hidden;
+  color: #f1c40f;
+}
+
+.rating-value {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.review-count {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
