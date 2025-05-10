@@ -40,6 +40,8 @@ public class Order {
     private List<OrderItem> items;
 
     private String paymentId;
+    
+    private String refundId;
 
 
     public void setPaymentId(String paymentId) {
@@ -48,6 +50,14 @@ public class Order {
 
     public String getPaymentId() {
         return paymentId;
+    }
+    
+    public void setRefundId(String refundId) {
+        this.refundId = refundId;
+    }
+
+    public String getRefundId() {
+        return refundId;
     }
 
     public void setTotalAmount(BigDecimal totalAmount) {

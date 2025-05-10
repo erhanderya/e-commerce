@@ -7,6 +7,14 @@ import com.webapp.back_end.repository.AddressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.RefundCreateParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -16,9 +24,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class OrderService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     @Autowired
     private OrderRepository orderRepository;
@@ -31,6 +43,9 @@ public class OrderService {
     
     @Autowired
     private AddressRepository addressRepository;
+    
+    @Autowired
+    private PaymentService paymentService;
     
     /**
      * Create a new order from user's cart
@@ -128,6 +143,90 @@ public class OrderService {
     }
     
     /**
+     * Extract a payment intent ID from a checkout session ID
+     * @param sessionId The Stripe Checkout Session ID
+     * @return The associated PaymentIntent ID or null if not found
+     */
+    private String getPaymentIntentFromSession(String sessionId) {
+        try {
+            // Clean the sessionId in case it has query parameters
+            String cleanSessionId = sessionId;
+            if (sessionId.contains("?")) {
+                cleanSessionId = sessionId.substring(0, sessionId.indexOf("?"));
+                logger.info("Cleaned session ID from '{}' to '{}'", sessionId, cleanSessionId);
+            }
+            
+            Session session = Session.retrieve(cleanSessionId);
+            String paymentIntentId = session.getPaymentIntent();
+            
+            if (paymentIntentId != null && !paymentIntentId.isEmpty()) {
+                logger.info("Found payment intent '{}' from session '{}'", paymentIntentId, cleanSessionId);
+                return paymentIntentId;
+            } else {
+                logger.warn("No payment intent found in session '{}'", cleanSessionId);
+                return null;
+            }
+        } catch (StripeException e) {
+            logger.error("Error retrieving session '{}': {}", sessionId, e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Process refund for an order
+     * @param order The order to refund
+     * @return true if refund was successful, false otherwise
+     */
+    private boolean processRefund(Order order) {
+        try {
+            String paymentId = order.getPaymentId();
+            if (paymentId == null || paymentId.isEmpty()) {
+                logger.error("No payment ID found for order ID: {}", order.getId());
+                throw new RuntimeException("No payment ID found for this order");
+            }
+            
+            logger.info("Processing refund for order ID: {} with payment ID: {}", order.getId(), paymentId);
+            
+            // Determine if this is a checkout session ID or a payment intent ID
+            String actualPaymentIntentId = paymentId;
+            
+            // If it starts with 'cs_', it's a checkout session
+            if (paymentId.startsWith("cs_")) {
+                logger.info("Detected checkout session ID '{}', retrieving associated payment intent", paymentId);
+                String sessionPaymentIntentId = getPaymentIntentFromSession(paymentId);
+                
+                if (sessionPaymentIntentId != null) {
+                    actualPaymentIntentId = sessionPaymentIntentId;
+                    logger.info("Using payment intent '{}' from session for refund", actualPaymentIntentId);
+                } else {
+                    logger.error("Failed to retrieve payment intent from session '{}'", paymentId);
+                    return false;
+                }
+            }
+            
+            // Create refund parameters
+            Map<String, Object> refundParams = new HashMap<>();
+            refundParams.put("payment_intent", actualPaymentIntentId);
+            
+            // Create refund through Stripe
+            Refund refund = Refund.create(refundParams);
+            logger.info("Refund created with ID: {} and status: {}", refund.getId(), refund.getStatus());
+            
+            // Update order with refund information
+            order.setRefundId(refund.getId());
+            orderRepository.save(order);
+            
+            return "succeeded".equals(refund.getStatus());
+        } catch (StripeException e) {
+            logger.error("Failed to process refund for order ID: {}: {}", order.getId(), e.getMessage(), e);
+            return false;
+        } catch (Exception e) {
+            logger.error("Unexpected error during refund processing for order ID: {}: {}", order.getId(), e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
      * Cancel an order
      * Only orders in PENDING or PREPARING status can be cancelled
      */
@@ -138,12 +237,28 @@ public class OrderService {
         
         // Check if the order belongs to the user
         if (!order.getUser().getId().equals(userId)) {
+            logger.warn("User ID: {} attempted to cancel order ID: {} which they don't own", userId, orderId);
             throw new RuntimeException("You don't have permission to cancel this order");
         }
         
         // Check if the order can be cancelled
         if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING) {
+            logger.warn("Cannot cancel order ID: {} with status: {}", orderId, order.getStatus());
             throw new RuntimeException("Cannot cancel order with status: " + order.getStatus());
+        }
+        
+        // Check if it already has a refund ID (already refunded)
+        if (order.getRefundId() != null && !order.getRefundId().isEmpty()) {
+            logger.info("Order ID: {} already has refund ID: {}, skipping refund", orderId, order.getRefundId());
+        } else {
+            // Process refund through Stripe
+            boolean refundProcessed = processRefund(order);
+            if (!refundProcessed) {
+                logger.error("Failed to process refund for order ID: {}", orderId);
+                throw new RuntimeException("Failed to process refund. Order cannot be canceled.");
+            }
+            
+            logger.info("Order ID: {} successfully refunded", orderId);
         }
         
         // Update the status to CANCELLED
@@ -156,6 +271,8 @@ public class OrderService {
             productRepository.save(product);
         }
         
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        logger.info("Order ID: {} successfully canceled", orderId);
+        return savedOrder;
     }
 }
