@@ -3,6 +3,7 @@ package com.webapp.back_end.controller;
 import java.util.List;
 import java.util.Map; // Import Map
 import java.util.HashMap; // Import HashMap
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -10,9 +11,11 @@ import org.springframework.security.core.Authentication; // Import Authenticatio
 import org.springframework.web.bind.annotation.*;
 
 import com.webapp.back_end.model.Product;
+import com.webapp.back_end.model.Review;
 import com.webapp.back_end.model.User; // Import User
 import com.webapp.back_end.repository.UserRepository; // Import UserRepository
 import com.webapp.back_end.service.ProductService;
+import com.webapp.back_end.service.ReviewService;
 
 @RestController
 @RequestMapping("/api/products")
@@ -24,23 +27,86 @@ public class ProductController {
 
     @Autowired
     private UserRepository userRepository; // Inject UserRepository
+    
+    @Autowired
+    private ReviewService reviewService;
 
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public List<Map<String, Object>> getAllProducts() {
+        List<Product> products = productService.getAllProducts();
+        return products.stream().map(product -> {
+            Map<String, Object> productMap = new HashMap<>();
+            productMap.put("id", product.getId());
+            productMap.put("name", product.getName());
+            productMap.put("description", product.getDescription());
+            productMap.put("price", product.getPrice());
+            productMap.put("image_url", product.getImage_url());
+            productMap.put("stock_quantity", product.getStock_quantity());
+            productMap.put("category", product.getCategory());
+            productMap.put("seller", product.getSeller());
+            productMap.put("category_id", product.getCategory_id());
+            
+            // Add average rating and review count
+            Double averageRating = reviewService.calculateAverageRating(product.getId());
+            List<Review> reviews = reviewService.getReviewsByProductId(product.getId());
+            productMap.put("averageRating", averageRating);
+            productMap.put("reviewCount", reviews.size());
+            
+            return productMap;
+        }).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<?> getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
-                .map(ResponseEntity::ok)
+                .map(product -> {
+                    Map<String, Object> productMap = new HashMap<>();
+                    productMap.put("id", product.getId());
+                    productMap.put("name", product.getName());
+                    productMap.put("description", product.getDescription());
+                    productMap.put("price", product.getPrice());
+                    productMap.put("image_url", product.getImage_url());
+                    productMap.put("stock_quantity", product.getStock_quantity());
+                    productMap.put("category", product.getCategory());
+                    productMap.put("seller", product.getSeller());
+                    productMap.put("category_id", product.getCategory_id());
+                    
+                    // Add average rating and review count
+                    Double averageRating = reviewService.calculateAverageRating(product.getId());
+                    List<Review> reviews = reviewService.getReviewsByProductId(product.getId());
+                    productMap.put("averageRating", averageRating);
+                    productMap.put("reviewCount", reviews.size());
+                    
+                    return ResponseEntity.ok(productMap);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<List<Map<String, Object>>> getProductsByCategory(@PathVariable Long categoryId) {
         List<Product> products = productService.getProductsByCategory(categoryId);
-        return ResponseEntity.ok(products);
+        List<Map<String, Object>> productsWithRatings = products.stream().map(product -> {
+            Map<String, Object> productMap = new HashMap<>();
+            productMap.put("id", product.getId());
+            productMap.put("name", product.getName());
+            productMap.put("description", product.getDescription());
+            productMap.put("price", product.getPrice());
+            productMap.put("image_url", product.getImage_url());
+            productMap.put("stock_quantity", product.getStock_quantity());
+            productMap.put("category", product.getCategory());
+            productMap.put("seller", product.getSeller());
+            productMap.put("category_id", product.getCategory_id());
+            
+            // Add average rating and review count
+            Double averageRating = reviewService.calculateAverageRating(product.getId());
+            List<Review> reviews = reviewService.getReviewsByProductId(product.getId());
+            productMap.put("averageRating", averageRating);
+            productMap.put("reviewCount", reviews.size());
+            
+            return productMap;
+        }).collect(Collectors.toList());
+        
+        return ResponseEntity.ok(productsWithRatings);
     }
     
     @GetMapping("/seller")
@@ -50,7 +116,29 @@ public class ProductController {
             List<Product> products = productService.getAllProducts().stream()
                 .filter(p -> p.getSeller() != null && p.getSeller().getId().equals(seller.getId()))
                 .toList();
-            return ResponseEntity.ok(products);
+                
+            List<Map<String, Object>> productsWithRatings = products.stream().map(product -> {
+                Map<String, Object> productMap = new HashMap<>();
+                productMap.put("id", product.getId());
+                productMap.put("name", product.getName());
+                productMap.put("description", product.getDescription());
+                productMap.put("price", product.getPrice());
+                productMap.put("image_url", product.getImage_url());
+                productMap.put("stock_quantity", product.getStock_quantity());
+                productMap.put("category", product.getCategory());
+                productMap.put("seller", product.getSeller());
+                productMap.put("category_id", product.getCategory_id());
+                
+                // Add average rating and review count
+                Double averageRating = reviewService.calculateAverageRating(product.getId());
+                List<Review> reviews = reviewService.getReviewsByProductId(product.getId());
+                productMap.put("averageRating", averageRating);
+                productMap.put("reviewCount", reviews.size());
+                
+                return productMap;
+            }).collect(Collectors.toList());
+            
+            return ResponseEntity.ok(productsWithRatings);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

@@ -59,6 +59,22 @@ public class ReviewService {
     }
     
     /**
+     * Calculate the average rating for a product
+     */
+    public Double calculateAverageRating(Long productId) {
+        List<Review> reviews = reviewRepository.findByProductId(productId);
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        
+        double sum = reviews.stream()
+                .mapToInt(Review::getRating)
+                .sum();
+        
+        return sum / reviews.size();
+    }
+    
+    /**
      * Create a new review
      */
     public Review createReview(Review review, Long productId, Long userId) {
