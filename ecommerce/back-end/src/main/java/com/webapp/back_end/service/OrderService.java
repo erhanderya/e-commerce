@@ -285,4 +285,57 @@ public class OrderService {
     public boolean hasUserPurchasedProduct(Long userId, Long productId) {
         return orderRepository.hasUserPurchasedProduct(userId, productId);
     }
+    
+    /**
+     * Cancel an order by a seller
+     * Only orders in PENDING or PREPARING status can be cancelled by a seller
+     */
+    @Transactional
+    public Order cancelOrderBySeller(Long orderId, Long sellerId) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        // Check if this order contains any products from this seller
+        boolean hasSellersProduct = order.getItems().stream()
+                .anyMatch(item -> item.getProduct().getSeller().getId().equals(sellerId));
+
+        if (!hasSellersProduct) {
+            logger.warn("Seller ID: {} attempted to cancel order ID: {} which doesn't contain their products", sellerId, orderId);
+            throw new RuntimeException("This order doesn't contain any of your products");
+        }
+        
+        // Check if the order can be cancelled
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING) {
+            logger.warn("Cannot cancel order ID: {} with status: {}", orderId, order.getStatus());
+            throw new RuntimeException("Cannot cancel order with status: " + order.getStatus());
+        }
+        
+        // Check if it already has a refund ID (already refunded)
+        if (order.getRefundId() != null && !order.getRefundId().isEmpty()) {
+            logger.info("Order ID: {} already has refund ID: {}, skipping refund", orderId, order.getRefundId());
+        } else {
+            // Process refund through Stripe
+            boolean refundProcessed = processRefund(order);
+            if (!refundProcessed) {
+                logger.error("Failed to process refund for order ID: {}", orderId);
+                throw new RuntimeException("Failed to process refund. Order cannot be canceled.");
+            }
+            
+            logger.info("Order ID: {} successfully refunded by seller ID: {}", orderId, sellerId);
+        }
+        
+        // Update the status to CANCELLED
+        order.setStatus(OrderStatus.CANCELLED);
+        
+        // Restore product quantities
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
+            productRepository.save(product);
+        }
+        
+        Order savedOrder = orderRepository.save(order);
+        logger.info("Order ID: {} successfully canceled by seller ID: {}", orderId, sellerId);
+        return savedOrder;
+    }
 }

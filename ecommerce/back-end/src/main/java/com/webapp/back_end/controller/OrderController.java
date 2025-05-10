@@ -191,8 +191,15 @@ public class OrderController {
                 return ResponseEntity.status(403).body(response);
             }
 
-            Order updatedOrder = orderService.updateOrderStatus(id, newStatus);
-            return ResponseEntity.ok(updatedOrder);
+            // If the new status is CANCELLED, use the cancelOrderBySeller method to handle refund
+            if (newStatus == OrderStatus.CANCELLED) {
+                Order cancelledOrder = orderService.cancelOrderBySeller(id, user.getId());
+                return ResponseEntity.ok(cancelledOrder);
+            } else {
+                // For other status updates, use the normal updateOrderStatus method
+                Order updatedOrder = orderService.updateOrderStatus(id, newStatus);
+                return ResponseEntity.ok(updatedOrder);
+            }
         } catch (Exception e) {
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
@@ -229,6 +236,30 @@ public class OrderController {
             Map<String, Boolean> response = new HashMap<>();
             response.put("hasPurchased", hasPurchased);
             return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Cancel an order by a seller (seller only, for orders containing their products)
+    @PutMapping("/{id}/seller-cancel")
+    public ResponseEntity<?> cancelOrderBySeller(@PathVariable Long id, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only sellers can cancel orders
+            if (user.getRole() != com.webapp.back_end.model.Role.SELLER) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only sellers can cancel orders");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            Order cancelledOrder = orderService.cancelOrderBySeller(id, user.getId());
+            return ResponseEntity.ok(cancelledOrder);
         } catch (Exception e) {
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
