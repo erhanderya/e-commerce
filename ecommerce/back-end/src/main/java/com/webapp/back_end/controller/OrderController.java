@@ -216,4 +216,23 @@ public class OrderController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    // Check if a user has purchased a product
+    @GetMapping("/has-purchased/{productId}")
+    public ResponseEntity<?> hasUserPurchasedProduct(@PathVariable Long productId, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            boolean hasPurchased = orderService.hasUserPurchasedProduct(user.getId(), productId);
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("hasPurchased", hasPurchased);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }

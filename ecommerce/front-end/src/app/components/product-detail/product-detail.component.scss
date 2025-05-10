@@ -92,6 +92,34 @@
   margin-top: 20px;
 }
 
+.info-message {
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  background-color: #edf2f7;
+  border-left: 4px solid #3498db;
+}
+
+.info-message.success {
+  background-color: #d4edda;
+  border-left: 4px solid #27ae60;
+}
+
+.info-message.warning {
+  background-color: #fff3cd;
+  border-left: 4px solid #f39c12;
+}
+
+.info-message.error {
+  background-color: #f8d7da;
+  border-left: 4px solid #e74c3c;
+}
+
+.auth-message {
+  font-weight: bold;
+  margin-top: 8px;
+}
+
 .form-group {
   margin-bottom: 15px;
 }

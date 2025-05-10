@@ -43,24 +43,45 @@
       </ng-template>
     </div>
 
-    <div class="review-form-section" *ngIf="isLoggedIn">
-      <h3>{{ hasReviewed ? 'Edit Your Review' : 'Write a Review' }}</h3>
-      <div class="info-message">
-        <p><i>Note: You can only review products you have purchased</i></p>
+    <!-- Write a Review section -->
+    <div class="review-form-section">
+      <h3>Write a Review</h3>
+
+      <!-- Not logged in message -->
+      <div *ngIf="!isLoggedIn" class="info-message warning">
+        <p>Note: You can only review products you have purchased</p>
+        <p class="auth-message">Please log in to write a review.</p>
       </div>
-      <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
-        <div class="form-group">
-          <label for="rating">Rating</label>
-          <select id="rating" formControlName="rating">
-            <option *ngFor="let star of [1, 2, 3, 4, 5]" [value]="star">{{ star }} Star{{ star > 1 ? 's' : '' }}</option>
-          </select>
+
+      <!-- Logged in but hasn't purchased -->
+      <div *ngIf="isLoggedIn && !hasPurchasedProduct && !checkingPurchaseStatus" class="info-message error">
+        <p>You need to purchase this product before you can review it.</p>
+      </div>
+
+      <!-- Loading purchase status -->
+      <div *ngIf="isLoggedIn && checkingPurchaseStatus" class="info-message">
+        <p>Checking if you have purchased this product...</p>
+      </div>
+
+      <!-- Review form for users who have purchased -->
+      <div *ngIf="isLoggedIn && hasPurchasedProduct">
+        <div class="info-message success">
+          <p><i>Note: You can only review products you have purchased</i></p>
         </div>
-        <div class="form-group">
-          <label for="comment">Comment</label>
-          <textarea id="comment" formControlName="comment" rows="4"></textarea>
-        </div>
-        <button type="submit" [disabled]="reviewForm.invalid">{{ hasReviewed ? 'Update Review' : 'Submit Review' }}</button>
-      </form>
+        <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
+          <div class="form-group">
+            <label for="rating">Rating</label>
+            <select id="rating" formControlName="rating">
+              <option *ngFor="let star of [1, 2, 3, 4, 5]" [value]="star">{{ star }} Star{{ star > 1 ? 's' : '' }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="comment">Comment</label>
+            <textarea id="comment" formControlName="comment" rows="4"></textarea>
+          </div>
+          <button type="submit" [disabled]="reviewForm.invalid">{{ hasReviewed ? 'Update Review' : 'Submit Review' }}</button>
+        </form>
+      </div>
     </div>
 
     <ng-template #errorTemplate>

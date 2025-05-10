@@ -105,6 +105,12 @@ public class ReviewService {
             throw new SecurityException("User not authorized to update this review");
         }
         
+        // Check if user has purchased the product
+        boolean hasPurchased = orderService.hasUserPurchasedProduct(userId, review.getProduct().getId());
+        if (!hasPurchased) {
+            throw new IllegalStateException("Cannot review a product you haven't purchased");
+        }
+        
         // Update fields
         if (updatedReview.getRating() != null) {
             review.setRating(updatedReview.getRating());
@@ -125,8 +131,15 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new NoSuchElementException("Review not found with ID: " + reviewId));
                 
-        // Check if the user is the author of the review
-        if (!review.getUser().getId().equals(userId)) {
+        // Get the user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        
+        // Check if the user is the author of the review or an admin
+        boolean isAdmin = user.getRole() == com.webapp.back_end.model.Role.ADMIN;
+        boolean isAuthor = review.getUser().getId().equals(userId);
+        
+        if (!isAuthor && !isAdmin) {
             throw new SecurityException("User not authorized to delete this review");
         }
         

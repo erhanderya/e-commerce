@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Order, OrderCreationRequest, OrderStatus } from '../models/order.model';
 
@@ -136,6 +136,17 @@ export class OrderService {
         console.error('Error updating order status:', error);
         return throwError(() => new Error(error.error?.error || 'Failed to update order status'));
       })
+    );
+  }
+
+  // Check if the current user has purchased a specific product
+  hasUserPurchasedProduct(productId: number): Observable<boolean> {
+    return this.http.get<{hasPurchased: boolean}>(`${this.apiUrl}/has-purchased/${productId}`).pipe(
+      catchError(error => {
+        console.error('Error checking product purchase:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to verify purchase status'));
+      }),
+      map(response => response.hasPurchased)
     );
   }
 }

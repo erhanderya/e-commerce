@@ -7,6 +7,7 @@ import { ReviewService } from '../../services/review.service';
 import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
 import { AlertService } from '../../services/alert.service';
+import { OrderService } from '../../services/order.service';
 import { Product } from '../../models/product.model';
 import { Review } from '../../models/review.model';
 import { User } from '../../models/user.model';
@@ -30,6 +31,8 @@ export class ProductDetailComponent implements OnInit {
   currentUserId: number | null = null;
   hasReviewed: boolean = false;
   userReview: Review | null = null;
+  hasPurchasedProduct: boolean = false;
+  checkingPurchaseStatus: boolean = false;
   //isAdmin: boolean;
 
   constructor(
@@ -39,6 +42,7 @@ export class ProductDetailComponent implements OnInit {
     private authService: AuthService,
     private cartService: CartService,
     private alertService: AlertService,
+    private orderService: OrderService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef
   ) {
@@ -79,6 +83,24 @@ export class ProductDetailComponent implements OnInit {
       next: (product) => {
         this.product = product;
         this.loadReviews(productId);
+
+        // Check if user has purchased this product
+        if (this.isLoggedIn && this.currentUserId) {
+          this.checkingPurchaseStatus = true;
+          this.orderService.hasUserPurchasedProduct(productId).subscribe({
+            next: (hasPurchased) => {
+              this.hasPurchasedProduct = hasPurchased;
+              this.checkingPurchaseStatus = false;
+              this.cdr.detectChanges();
+            },
+            error: (err) => {
+              console.error('Error checking purchase status:', err);
+              this.hasPurchasedProduct = false;
+              this.checkingPurchaseStatus = false;
+              this.cdr.detectChanges();
+            }
+          });
+        }
       },
       error: (err) => {
         this.error = err.message || 'Failed to load product';
@@ -124,6 +146,11 @@ export class ProductDetailComponent implements OnInit {
   submitReview(): void {
     if (!this.isLoggedIn) {
       this.alertService.warn('Please log in to submit a review.');
+      return;
+    }
+
+    if (!this.hasPurchasedProduct) {
+      this.alertService.error('You can only review products you have purchased.');
       return;
     }
 
