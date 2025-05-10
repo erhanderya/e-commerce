@@ -126,4 +126,36 @@ public class OrderService {
     public List<Order> getOrdersForSeller(Long sellerId) {
         return orderRepository.findOrdersContainingSellerProducts(sellerId);
     }
+    
+    /**
+     * Cancel an order
+     * Only orders in PENDING or PREPARING status can be cancelled
+     */
+    @Transactional
+    public Order cancelOrder(Long orderId, Long userId) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        // Check if the order belongs to the user
+        if (!order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("You don't have permission to cancel this order");
+        }
+        
+        // Check if the order can be cancelled
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING) {
+            throw new RuntimeException("Cannot cancel order with status: " + order.getStatus());
+        }
+        
+        // Update the status to CANCELLED
+        order.setStatus(OrderStatus.CANCELLED);
+        
+        // Restore product quantities
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
+            productRepository.save(product);
+        }
+        
+        return orderRepository.save(order);
+    }
 }

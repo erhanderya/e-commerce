@@ -6,34 +6,65 @@
         <a href="#" 
            [class.active]="!selectedCategory" 
            (click)="selectCategory(null, $event)">
-          All Products
+          <i class="fa-solid fa-grid-2"></i> All Products
         </a>
       </li>
       <li *ngFor="let category of categories">
         <a href="#" 
            [class.active]="selectedCategory?.id === category.id"
            (click)="selectCategory(category, $event)">
-          {{category.name}}
+          <i class="fa-solid fa-tag"></i> {{category.name}}
         </a>
       </li>
     </ul>
   </aside>
 
   <div class="product-list-content">
-    <h2>Products</h2>
+    <div class="product-header">
+      <h2>Products</h2>
+      <div class="product-filters">
+        <button class="filter-btn active">Newest</button>
+        <button class="filter-btn">Price: Low to High</button>
+        <button class="filter-btn">Price: High to Low</button>
+      </div>
+    </div>
+
     <div class="products-grid">
-      <div *ngFor="let product of products" class="product-card" [routerLink]="['/product', product.id]">
-        <img [src]="product.image_url" [alt]="product.name">
-        <h3>{{product.name}}</h3>
-        <p class="seller-username">{{product.seller?.username}}</p>
-        <p>{{product.description}}</p>
-        <p class="price">${{product.price}}</p>
-        <button *ngIf="product.stock_quantity > 0" class="add-to-cart" (click)="addToCart(product); $event.stopPropagation()">
-          Add to Cart
-        </button>
-        <p *ngIf="product.stock_quantity === 0" class="out-of-stock">
-          Out of Stock
-        </p>
+      <div *ngFor="let product of products; let i = index" class="product-card" [routerLink]="['/product', product.id]">
+        <div class="product-image-container">
+          <img [src]="product.image_url" [alt]="product.name">
+          <div class="product-actions">
+            <button class="action-btn"><i class="fa-solid fa-heart"></i></button>
+            <button class="action-btn" (click)="addToCart(product); $event.stopPropagation()"><i class="fa-solid fa-cart-shopping"></i></button>
+          </div>
+        </div>
+        
+        <span *ngIf="i % 3 === 0" class="badge new-badge">New</span>
+        <span *ngIf="i % 3 === 1" class="badge sale-badge">Sale</span>
+        <span *ngIf="i % 3 === 2" class="badge featured-badge">Featured</span>
+        
+        <div class="product-info">
+          <p class="seller-username">{{product.seller?.username || 'Seller' + (i + 1)}}</p>
+          <h3>{{product.name}}</h3>
+          <div class="rating">
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star-half"></i>
+            <span>(4.5)</span>
+          </div>
+          <p class="description">{{product.description}}</p>
+          <div class="product-footer">
+            <p class="price">${{product.price}}</p>
+            <button *ngIf="product.stock_quantity > 0" class="add-to-cart" (click)="addToCart(product); $event.stopPropagation()">
+              Add to Cart
+            </button>
+            <p *ngIf="product.stock_quantity === 0" class="out-of-stock">
+              Out of Stock
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

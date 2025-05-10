@@ -37,6 +37,7 @@ export class OrdersComponent implements OnInit {
       },
       error: (error) => {
         this.error = error.message || 'Failed to load orders';
+        this.alertService.error(this.error);
         this.loading = false;
       }
     });
@@ -52,19 +53,35 @@ export class OrdersComponent implements OnInit {
 
   cancelOrder(id: number | undefined): void {
     if (!id) {
-      this.alertService.error('Order ID is missing');
+      this.alertService.error('Cannot cancel: Order ID is missing');
+      return;
+    }
+
+    // Find the order to check its status
+    const orderToCancel = this.orders.find(order => order.id === id);
+    if (!orderToCancel) {
+      this.alertService.error('Order not found');
+      return;
+    }
+
+    // Check if the order can be cancelled based on its status
+    if (!this.canCancelOrder(orderToCancel.status)) {
+      this.alertService.error(`Cannot cancel order in ${orderToCancel.status} status`);
       return;
     }
 
     if (confirm('Are you sure you want to cancel this order?')) {
+      this.loading = true;
       this.orderService.cancelOrder(id).subscribe({
         next: () => {
           this.alertService.success('Order cancelled successfully');
           this.loadOrders();
           this.selectedOrder = null;
+          this.loading = false;
         },
         error: (error) => {
           this.alertService.error(error?.message || 'Failed to cancel order');
+          this.loading = false;
         }
       });
     }

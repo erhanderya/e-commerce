@@ -1,5 +1,31 @@
 /* You can add global styles to this file, and also import other style files */
 
+:root {
+  --primary-color: #f27a1a;
+  --primary-dark: #e8670b;
+  --secondary-color: #f8f9fa;
+  --accent-color: #5d3ebc;
+  --accent-light: #7553cf;
+  --text-color: #333;
+  --text-light: #6c757d;
+  --text-white: #ffffff;
+  --light-gray: #e9ecef;
+  --border-color: #dee2e6;
+  --success-color: #2ecc71;
+  --warning-color: #ffbe0b;
+  --info-color: #3498db;
+  --danger-color: #f27a1a;
+  --card-bg: #ffffff;
+  --body-bg: #f5f7fa;
+  --badge-new: #5d3ebc;
+  --badge-sale: #ff3860;
+  --badge-featured: #ffbe0b;
+  --border-radius: 4px;
+  --border-radius-lg: 8px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --transition: all 0.2s ease;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -9,8 +35,8 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
-  background-color: #f9f9f9;
-  color: #333;
+  background-color: var(--body-bg);
+  color: var(--text-color);
 }
 
 button {

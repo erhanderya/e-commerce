@@ -53,6 +53,7 @@ export class AddressComponent implements OnInit {
       },
       error: (error) => {
         this.error = error.message || 'Failed to load addresses';
+        this.alertService.error(this.error);
         this.loading = false;
       }
     });
@@ -89,6 +90,9 @@ export class AddressComponent implements OnInit {
     this.submitting = true;
     const addressData = this.addressForm.value;
 
+    // Ensure isDefault is a boolean
+    addressData.isDefault = Boolean(addressData.isDefault);
+
     if (this.editMode && this.editAddressId) {
       this.addressService.updateAddress(this.editAddressId, addressData).subscribe({
         next: () => {
@@ -119,31 +123,65 @@ export class AddressComponent implements OnInit {
   }
 
   editAddress(address: Address): void {
+    if (!address) {
+      this.alertService.error('Cannot edit: Address information is missing');
+      return;
+    }
+    
     this.editMode = true;
     this.editAddressId = address.id ?? null;
-    this.addressForm.setValue({
-      fullName: address.fullName,
-      phone: address.phone,
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      postalCode: address.postalCode,
-      country: address.country,
-      isDefault: address.isDefault
+    
+    if (!this.editAddressId) {
+      this.alertService.error('Cannot edit: Address ID is missing');
+      return;
+    }
+    
+    // Use patchValue instead of setValue to handle missing properties
+    // and explicitly set isDefault to ensure it's properly handled
+    this.addressForm.patchValue({
+      fullName: address.fullName || '',
+      phone: address.phone || '',
+      street: address.street || '',
+      city: address.city || '',
+      state: address.state || '',
+      postalCode: address.postalCode || '',
+      country: address.country || '',
+      isDefault: Boolean(address.isDefault) // Ensure proper boolean conversion
     });
+    
     this.showAddressForm = true;
   }
 
   deleteAddress(id: number): void {
+    if (!id) {
+      this.alertService.error('Cannot delete: Address ID is missing');
+      return;
+    }
+    
     if (confirm('Are you sure you want to delete this address?')) {
       this.loading = true;
       this.addressService.deleteAddress(id).subscribe({
         next: () => {
           this.alertService.success('Address deleted successfully');
+          // Remove from local array immediately for UI responsiveness
+          this.addresses = this.addresses.filter(address => address.id !== id);
+          // Then reload from server to ensure consistency
           this.loadAddresses();
+          this.loading = false;
         },
         error: (error) => {
-          this.alertService.error(error.message || 'Failed to delete address');
+          console.error('Error deleting address:', error);
+          
+          // Handle foreign key constraint error
+          if (error.message && (
+              error.message.includes('foreign key constraint fails') || 
+              error.message.includes('CONSTRAINT') || 
+              error.message.includes('FK')
+          )) {
+            this.alertService.error('This address cannot be deleted because it is used in one or more orders.');
+          } else {
+            this.alertService.error(error.message || 'Failed to delete address');
+          }
           this.loading = false;
         }
       });
@@ -151,6 +189,11 @@ export class AddressComponent implements OnInit {
   }
 
   setAsDefault(id: number): void {
+    if (!id) {
+      this.alertService.error('Cannot set as default: Address ID is missing');
+      return;
+    }
+    
     this.loading = true;
     this.addressService.setDefaultAddress(id).subscribe({
       next: () => {

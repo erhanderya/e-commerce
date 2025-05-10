@@ -191,9 +191,41 @@
     transform: translateY(-3px);
   }
 
-  &.default {
-    border-color: #4a6ee0;
-    box-shadow: 0 0 0 1px #4a6ee0, 0 2px 8px rgba(0, 0, 0, 0.05);
+  &.default-address {
+    border: 2px solid #4a6ee0;
+    box-shadow: 0 0 15px rgba(74, 110, 224, 0.2);
+    
+    .address-card-content {
+      background-color: rgba(74, 110, 224, 0.05);
+    }
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-top: 40px solid #4a6ee0;
+      border-right: 40px solid transparent;
+      z-index: 1;
+    }
+  }
+
+  .default-ribbon {
+    position: absolute;
+    top: 15px;
+    right: -35px;
+    background: #4a6ee0;
+    color: white;
+    padding: 7px 40px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    transform: rotate(45deg);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    letter-spacing: 1px;
   }
 
   .address-card-content {
@@ -214,11 +246,14 @@
   .default-badge {
     background-color: #4a6ee0;
     color: white;
-    font-size: 12px;
-    padding: 4px 10px;
+    font-size: 13px;
+    padding: 6px 12px;
     border-radius: 20px;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: inline-block;
   }
 
   .address-details {
@@ -432,4 +467,9 @@
     background-color: #4a6ee0;
     color: white;
   }
+}
+
+.default-badge-container {
+  margin: -5px 0 12px 0;
+  display: block;
 }

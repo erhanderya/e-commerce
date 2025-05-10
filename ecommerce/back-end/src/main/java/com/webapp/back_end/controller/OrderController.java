@@ -199,4 +199,21 @@ public class OrderController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    // Cancel an order
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelOrder(@PathVariable Long id, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            Order cancelledOrder = orderService.cancelOrder(id, user.getId());
+            return ResponseEntity.ok(cancelledOrder);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }
