@@ -1,4 +1,4 @@
-<div class="product-list-container">
+<div class="product-list-container" [class.has-tracking]="isLoggedIn && hasActiveOrders">
   <aside class="category-sidebar">
     <h3>Categories</h3>
     <ul class="category-list">
@@ -69,4 +69,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- Order tracking component will be placed here -->
+  <aside class="order-tracking-sidebar" *ngIf="isLoggedIn">
+    <app-order-tracking (activeOrdersChange)="onActiveOrdersChange($event)"></app-order-tracking>
+  </aside>
 </div>

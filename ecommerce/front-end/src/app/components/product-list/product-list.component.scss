@@ -1,18 +1,34 @@
 .product-list-container {
   display: flex;
-  gap: 30px;
-  max-width: 1280px;
+  gap: 20px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 10px;
+  
+  &.has-tracking {
+    .product-list-content {
+      max-width: calc(100% - 500px); /* Width when both sidebars are present */
+    }
+  }
+  
+  &:not(.has-tracking) {
+    .product-list-content {
+      max-width: calc(100% - 240px); /* Width when only category sidebar is present */
+    }
+    
+    .order-tracking-sidebar {
+      display: none; /* Hide the sidebar completely */
+    }
+  }
 }
 
 .category-sidebar {
-  width: 250px;
+  width: 220px;
   flex-shrink: 0;
   background: var(--card-bg);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--box-shadow);
-  padding: 25px;
+  padding: 20px;
   height: fit-content;
   position: sticky;
   top: 90px;
@@ -22,7 +38,7 @@
     margin-bottom: 20px;
     color: var(--text-color);
     font-weight: 600;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     position: relative;
     padding-bottom: 10px;
     
@@ -49,12 +65,13 @@
       a {
         display: flex;
         align-items: center;
-        padding: 12px 16px;
+        padding: 10px 12px;
         color: var(--text-light);
         text-decoration: none;
         border-radius: var(--border-radius);
         transition: var(--transition);
         font-weight: 400;
+        font-size: 0.95rem;
 
         i {
           margin-right: 10px;
@@ -84,6 +101,47 @@
 
 .product-list-content {
   flex: 1;
+}
+
+/* Order tracking sidebar styles */
+.order-tracking-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  height: fit-content;
+  position: sticky;
+  top: 90px;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 1100px) {
+  .product-list-container {
+    &.has-tracking, &:not(.has-tracking) {
+      .product-list-content {
+        max-width: calc(100% - 240px);
+      }
+    }
+  }
+  
+  .order-tracking-sidebar {
+    display: none; /* Hide on smaller screens */
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .product-list-container {
+    flex-direction: column;
+    
+    &.has-tracking, &:not(.has-tracking) {
+      .product-list-content {
+        max-width: 100%;
+      }
+    }
+  }
+  
+  .category-sidebar {
+    width: 100%;
+    position: static;
+  }
 }
 
 .product-header {
@@ -345,33 +403,6 @@
     font-size: 14px;
     text-align: center;
     margin: 0;
-  }
-}
-
-@media (max-width: 992px) {
-  .product-list-container {
-    flex-direction: column;
-  }
-  
-  .category-sidebar {
-    width: 100%;
-    position: static;
-  }
-  
-  .product-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-    
-    .product-filters {
-      width: 100%;
-      overflow-x: auto;
-      padding-bottom: 5px;
-      
-      .filter-btn {
-        white-space: nowrap;
-      }
-    }
   }
 }
 

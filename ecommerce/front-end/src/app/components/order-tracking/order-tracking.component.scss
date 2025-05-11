@@ -1,0 +1,141 @@
+.order-tracking-container {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+  
+  .compact-tracking-box {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    width: 100%;
+    border-top: 3px solid #3498db;
+    
+    .tracking-title {
+      color: #333;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .loading-indicator, .error-message {
+      padding: 8px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+    
+    .error-message {
+      color: #e74c3c;
+    }
+    
+    .no-orders-message {
+      padding: 15px 10px;
+      text-align: center;
+      
+      p {
+        color: #777;
+        margin: 0 0 10px;
+        font-size: 13px;
+      }
+      
+      a {
+        font-size: 12px;
+        color: #3498db;
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+    
+    .active-order {
+      .order-status-line {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        
+        .status-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          margin-right: 8px;
+        }
+        
+        .status-label {
+          font-size: 13px;
+          font-weight: 500;
+          color: #333;
+        }
+      }
+      
+      .order-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f8f8f8;
+        border-radius: 6px;
+        padding: 8px;
+        margin-bottom: 8px;
+        
+        .order-info {
+          display: flex;
+          flex-direction: column;
+          
+          .order-number {
+            font-weight: 600;
+            font-size: 12px;
+          }
+          
+          .order-date {
+            color: #777;
+            font-size: 11px;
+            margin-top: 2px;
+          }
+        }
+        
+        .order-price {
+          font-weight: 600;
+          font-size: 13px;
+          color: #2c3e50;
+        }
+      }
+      
+      .view-details-btn {
+        width: 100%;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 0;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-bottom: 8px;
+        
+        &:hover {
+          background-color: #2980b9;
+        }
+      }
+      
+      .more-orders {
+        text-align: center;
+        font-size: 11px;
+        
+        a {
+          color: #3498db;
+          text-decoration: none;
+          cursor: pointer;
+          
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+} 

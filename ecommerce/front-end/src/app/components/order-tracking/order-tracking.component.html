@@ -1,0 +1,44 @@
+<div class="order-tracking-container">
+  <div class="compact-tracking-box">
+    <h3 class="tracking-title">Order Tracking</h3>
+    
+    <div *ngIf="loading" class="loading-indicator">
+      <span>Loading orders...</span>
+    </div>
+    
+    <div *ngIf="error" class="error-message">
+      <p>Unable to load orders</p>
+    </div>
+    
+    <div *ngIf="!loading && !error && undeliveredOrders.length > 0" class="active-order">
+      <!-- Display only the most recent order -->
+      <div class="order-status-line">
+        <div class="status-indicator" [style.background-color]="getStatusColor(undeliveredOrders[0].status)"></div>
+        <span class="status-label">{{getStatusLabel(undeliveredOrders[0].status)}}</span>
+      </div>
+      
+      <div class="order-summary">
+        <div class="order-info">
+          <span class="order-number">Order #{{undeliveredOrders[0].id}}</span>
+          <span class="order-date">{{undeliveredOrders[0].orderDate | date:'shortDate'}}</span>
+        </div>
+        <span class="order-price">${{undeliveredOrders[0].totalAmount}}</span>
+      </div>
+      
+      <button class="view-details-btn" (click)="viewOrderDetails(undeliveredOrders[0].id)">
+        Track Order
+      </button>
+      
+      <div *ngIf="undeliveredOrders.length > 1" class="more-orders">
+        <a (click)="$event.stopPropagation(); viewOrderDetails(undeliveredOrders[1].id)">
+          + {{undeliveredOrders.length - 1}} more order(s) in progress
+        </a>
+      </div>
+    </div>
+    
+    <div *ngIf="!loading && !error && undeliveredOrders.length === 0" class="no-orders-message">
+      <p>You have no active orders</p>
+      <a routerLink="/orders">View order history</a>
+    </div>
+  </div>
+</div> 

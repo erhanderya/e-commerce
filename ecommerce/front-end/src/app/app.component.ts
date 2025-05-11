@@ -12,7 +12,14 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, FormsModule, HttpClientModule, AlertComponent],
+  imports: [
+    CommonModule, 
+    RouterOutlet, 
+    RouterLink, 
+    FormsModule, 
+    HttpClientModule, 
+    AlertComponent
+  ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })

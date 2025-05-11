@@ -23,7 +23,8 @@ public class Product {
 
     @Column(nullable = false)
     private String name;
-
+    
+    @Column(columnDefinition = "LONGTEXT")
     private String description;
 
     @Column(nullable = false)

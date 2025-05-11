@@ -6,30 +6,40 @@ import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { Category } from '../../models/category.model';
 import { AlertService } from '../../services/alert.service';
+import { AuthService } from '../../services/auth.service';
+import { OrderTrackingComponent } from '../order-tracking/order-tracking.component';
 
 @Component({
   selector: 'app-product-list',
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink]
+  imports: [CommonModule, RouterLink, OrderTrackingComponent]
 })
 export class ProductListComponent implements OnInit {
   products: Product[] = [];
   categories: Category[] = [];
   selectedCategory: Category | null = null;
   originalProducts: Product[] = [];
+  isLoggedIn: boolean = false;
+  hasActiveOrders: boolean = false;
 
   constructor(
     private productService: ProductService,
     private cartService: CartService,
     private route: ActivatedRoute,
-    private alertService: AlertService // Inject AlertService
+    private alertService: AlertService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
     this.loadCategories();
     this.loadProducts();
+    
+    // Check if user is logged in
+    this.authService.currentUser$.subscribe(user => {
+      this.isLoggedIn = !!user;
+    });
 
     // Subscribe to query parameter changes for search
     this.route.queryParams.subscribe(params => {
@@ -39,6 +49,11 @@ export class ProductListComponent implements OnInit {
         this.loadProducts();
       }
     });
+  }
+
+  onActiveOrdersChange(hasActiveOrders: boolean): void {
+    console.log('Product list: Active orders changed:', hasActiveOrders);
+    this.hasActiveOrders = hasActiveOrders;
   }
 
   loadCategories(): void {
