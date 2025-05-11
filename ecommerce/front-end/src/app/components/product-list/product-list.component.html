@@ -53,7 +53,7 @@
               <i class="fa-regular fa-star" *ngIf="!product.averageRating || (star > product.averageRating && star - 0.5 > product.averageRating)"></i>
             </ng-container>
             <span>({{product.averageRating ? (product.averageRating | number: '1.1-1') : '0.0'}})</span>
-            <span *ngIf="product.reviewCount && product.reviewCount > 0"> · {{product.reviewCount}} review<span *ngIf="product.reviewCount !== 1">s</span></span>
+            <span *ngIf="product.reviewCount && product.reviewCount > 0"> · {{product.reviewCount}} reviews</span>
           </div>
           <p class="description">{{product.description}}</p>
           <div class="product-footer">

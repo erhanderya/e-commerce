@@ -33,6 +33,7 @@ export class ProductDetailComponent implements OnInit {
   userReview: Review | null = null;
   hasPurchasedProduct: boolean = false;
   checkingPurchaseStatus: boolean = false;
+  activeTab: string = 'description';
   //isAdmin: boolean;
 
   constructor(

@@ -188,6 +188,7 @@ body {
       text-decoration: none;
       color: var(--text-color);
       transition: var(--transition);
+      white-space: pre;
 
       &:hover {
         background-color: var(--secondary-color);

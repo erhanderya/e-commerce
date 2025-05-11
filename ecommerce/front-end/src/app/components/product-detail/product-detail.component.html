@@ -13,96 +13,128 @@
                  [class.half-filled]="star === 0.5">★</i>
             </ng-container>
           </span>
-          <span class="rating-value">{{ product.averageRating | number:'1.1-1' }} Star{{ product.averageRating !== 1 ? 's' : '' }}</span>
+          <span class="rating-value">{{ product.averageRating | number:'1.1-1' }}</span>
           <span class="review-count">({{ reviews.length }} Review{{ reviews.length !== 1 ? 's' : '' }})</span>
         </div>
-        <p class="description">{{ product.description }}</p>
-        <p class="price">Price: ${{ product.price }}</p>
+        <p class="price">${{ product.price }}</p>
         <p class="stock" *ngIf="product.stock_quantity > 0">In Stock: {{ product.stock_quantity }}</p>
         <p class="stock out-of-stock" *ngIf="product.stock_quantity === 0">Out of Stock</p>
-        <button class="add-to-cart" (click)="addToCart()" [disabled]="product.stock_quantity === 0">Add to Cart</button>
+        <button class="add-to-cart" (click)="addToCart()" [disabled]="product.stock_quantity === 0">
+          <i class="fa fa-shopping-cart"></i> Add to Cart
+        </button>
       </div>
     </div>
 
-    <div class="reviews-section">
-      <h2>Reviews</h2>
-      <div *ngIf="reviews.length > 0; else noReviews">
-        <div *ngFor="let review of reviews" class="review">
-          <div class="review-header">
-            <span class="review-user">{{ review.user?.username }}</span>
-            <span class="review-rating">
-              <ng-container *ngFor="let star of createStarArray(review.rating)">
-                <i class="star"
-                   [class.filled]="star === 1"
-                   [class.half-filled]="star === 0.5">★</i>
-              </ng-container>
-                <span class="rating-value">{{ review.rating }} Star{{ review.rating > 1 ? 's' : '' }}</span>
-            </span>
-            <!-- Show delete button only to authorized users (review owner, admin, or seller) -->
-            <button
-              type="button"
-              class="delete-review"
-              *ngIf="isLoggedIn && (review.userId == currentUserId || isAdminUser() || isProductSeller())"
-              (click)="deleteReview(review.id)">
-              Delete
-            </button>
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'description'"
+        (click)="activeTab = 'description'">
+        Product Description
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'reviews'"
+        (click)="activeTab = 'reviews'">
+        Reviews ({{ reviews.length }})
+      </button>
+    </div>
+
+    <!-- Product Description Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'description'">
+      <div class="description-section">
+        <h2>Product Description</h2>
+        <p class="description">{{ product.description }}</p>
+        <!-- You can add more product details here if needed -->
+      </div>
+    </div>
+
+    <!-- Reviews Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'reviews'">
+      <div class="reviews-section">
+        <h2>Customer Reviews</h2>
+        <div *ngIf="reviews.length > 0; else noReviews">
+          <div *ngFor="let review of reviews" class="review">
+            <div class="review-header">
+              <span class="review-user">{{ review.user?.username }}</span>
+              <span class="review-rating">
+                <ng-container *ngFor="let star of createStarArray(review.rating)">
+                  <i class="star"
+                     [class.filled]="star === 1"
+                     [class.half-filled]="star === 0.5">★</i>
+                </ng-container>
+              </span>
+              <!-- Show delete button only to authorized users (review owner, admin, or seller) -->
+              <button
+                type="button"
+                class="delete-review"
+                *ngIf="isLoggedIn && (review.userId == currentUserId || isAdminUser() || isProductSeller())"
+                (click)="deleteReview(review.id)">
+                <i class="fa fa-trash"></i> Delete
+              </button>
+            </div>
+            <p class="review-comment">{{ review.comment }}</p>
+            <p class="review-date">{{ review.createdAt | date:'medium' }}</p>
           </div>
-          <p class="review-comment">{{ review.comment }}</p>
-          <p class="review-date">{{ review.createdAt | date }}</p>
+        </div>
+        <ng-template #noReviews>
+          <p>No reviews yet. Be the first to review this product!</p>
+        </ng-template>
+      </div>
+
+      <!-- Write a Review section -->
+      <div class="review-form-section">
+        <h3>Write a Review</h3>
+
+        <!-- Not logged in message -->
+        <div *ngIf="!isLoggedIn" class="info-message warning">
+          <p>Note: You can only review products you have purchased</p>
+          <p class="auth-message">Please log in to write a review.</p>
+        </div>
+
+        <!-- Logged in but hasn't purchased -->
+        <div *ngIf="isLoggedIn && !hasPurchasedProduct && !checkingPurchaseStatus" class="info-message error">
+          <p>You need to purchase this product before you can review it.</p>
+        </div>
+
+        <!-- Loading purchase status -->
+        <div *ngIf="isLoggedIn && checkingPurchaseStatus" class="info-message">
+          <p>Checking if you have purchased this product...</p>
+        </div>
+
+        <!-- Review form for users who have purchased -->
+        <div *ngIf="isLoggedIn && hasPurchasedProduct">
+          <div class="info-message success">
+            <p><i>Note: You can only review products you have purchased</i></p>
+          </div>
+          <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
+            <div class="form-group">
+              <label for="rating">Rating</label>
+              <select id="rating" formControlName="rating">
+                <option *ngFor="let star of [1, 2, 3, 4, 5]" [value]="star">{{ star }} Star{{ star > 1 ? 's' : '' }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="comment">Comment</label>
+              <textarea id="comment" formControlName="comment" rows="4" placeholder="Share your thoughts about this product..."></textarea>
+            </div>
+            <button type="submit" [disabled]="reviewForm.invalid">{{ hasReviewed ? 'Update Review' : 'Submit Review' }}</button>
+          </form>
         </div>
       </div>
-      <ng-template #noReviews>
-        <p>No reviews yet. Be the first to review this product!</p>
-      </ng-template>
     </div>
-
-    <!-- Write a Review section -->
-    <div class="review-form-section">
-      <h3>Write a Review</h3>
-
-      <!-- Not logged in message -->
-      <div *ngIf="!isLoggedIn" class="info-message warning">
-        <p>Note: You can only review products you have purchased</p>
-        <p class="auth-message">Please log in to write a review.</p>
-      </div>
-
-      <!-- Logged in but hasn't purchased -->
-      <div *ngIf="isLoggedIn && !hasPurchasedProduct && !checkingPurchaseStatus" class="info-message error">
-        <p>You need to purchase this product before you can review it.</p>
-      </div>
-
-      <!-- Loading purchase status -->
-      <div *ngIf="isLoggedIn && checkingPurchaseStatus" class="info-message">
-        <p>Checking if you have purchased this product...</p>
-      </div>
-
-      <!-- Review form for users who have purchased -->
-      <div *ngIf="isLoggedIn && hasPurchasedProduct">
-        <div class="info-message success">
-          <p><i>Note: You can only review products you have purchased</i></p>
-        </div>
-        <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
-          <div class="form-group">
-            <label for="rating">Rating</label>
-            <select id="rating" formControlName="rating">
-              <option *ngFor="let star of [1, 2, 3, 4, 5]" [value]="star">{{ star }} Star{{ star > 1 ? 's' : '' }}</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="comment">Comment</label>
-            <textarea id="comment" formControlName="comment" rows="4"></textarea>
-          </div>
-          <button type="submit" [disabled]="reviewForm.invalid">{{ hasReviewed ? 'Update Review' : 'Submit Review' }}</button>
-        </form>
-      </div>
-    </div>
-
-    <ng-template #errorTemplate>
-      <p class="error">{{ error }}</p>
-    </ng-template>
   </ng-container>
+
+  <ng-template #errorTemplate>
+    <div class="error-container">
+      <p class="error">{{ error }}</p>
+    </div>
+  </ng-template>
 </div>
 
 <ng-template #loading>
-  <p>Loading product details...</p>
+  <div class="loading-container">
+    <p>Loading product details...</p>
+  </div>
 </ng-template>
