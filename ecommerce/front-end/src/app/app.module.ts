@@ -1,10 +1,11 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 
 import { AppComponent } from './app.component';
 import { ProductListComponent } from './components/product-list/product-list.component';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
 
 @NgModule({
   imports: [
@@ -14,6 +15,8 @@ import { ProductListComponent } from './components/product-list/product-list.com
     AppComponent,
     ProductListComponent,
   ],
-  providers: []
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+  ]
 })
 export class AppModule { } 

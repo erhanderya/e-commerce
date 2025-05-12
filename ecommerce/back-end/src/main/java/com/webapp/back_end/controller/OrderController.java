@@ -415,4 +415,59 @@ public class OrderController {
             return ResponseEntity.status(500).body(response);
         }
     }
+
+    // Get all return requests (admin only)
+    @GetMapping("/return-requests/admin")
+    public ResponseEntity<?> getAllReturnRequests(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only admin can get all return requests
+            if (user.getRole() != com.webapp.back_end.model.Role.ADMIN) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only administrators can view all return requests");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            List<ReturnRequest> returnRequests = orderService.getAllReturnRequests();
+            return ResponseEntity.ok(returnRequests);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    // Process return request as admin
+    @PutMapping("/return-requests/{id}/admin-process")
+    public ResponseEntity<?> processReturnRequestAsAdmin(
+            @PathVariable Long id, 
+            @RequestBody Map<String, Object> payload, 
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Only admin can process return requests through this endpoint
+            if (user.getRole() != com.webapp.back_end.model.Role.ADMIN) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Only administrators can process return requests through this endpoint");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            boolean approved = (boolean) payload.get("approved");
+            String notes = (String) payload.get("notes");
+            
+            // Process as admin (passing the user ID of the admin as seller ID for now)
+            ReturnRequest processedRequest = orderService.processReturnRequest(id, user.getId(), approved, notes);
+            return ResponseEntity.ok(processedRequest);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }

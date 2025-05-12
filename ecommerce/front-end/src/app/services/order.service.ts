@@ -240,4 +240,25 @@ export class OrderService {
         return '#7f8c8d'; // gray
     }
   }
+
+  // Get all return requests (admin only)
+  getAllReturnRequests(): Observable<ReturnRequest[]> {
+    // Use the correct API endpoint that we just added to the backend
+    return this.http.get<ReturnRequest[]>(`${this.apiUrl}/return-requests/admin`).pipe(
+      catchError(error => {
+        console.error('Error fetching all return requests:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch return requests'));
+      })
+    );
+  }
+
+  // Process return request as admin (approve/reject)
+  processReturnRequestAsAdmin(requestId: number, process: ReturnRequestProcess): Observable<ReturnRequest> {
+    return this.http.put<ReturnRequest>(`${this.apiUrl}/return-requests/${requestId}/admin-process`, process).pipe(
+      catchError(error => {
+        console.error('Error processing return request as admin:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to process return request'));
+      })
+    );
+  }
 }

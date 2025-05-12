@@ -698,4 +698,11 @@ public class OrderService {
                 throw new RuntimeException("Unexpected status: " + currentStatus);
         }
     }
+
+    /**
+     * Get all return requests (admin only)
+     */
+    public List<ReturnRequest> getAllReturnRequests() {
+        return returnRequestRepository.findAll();
+    }
 }

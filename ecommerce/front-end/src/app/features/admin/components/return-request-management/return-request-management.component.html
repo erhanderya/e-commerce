@@ -1,0 +1,113 @@
+<div class="return-request-container">
+  <h2>Return Request Management</h2>
+  
+  <div *ngIf="isUsingMockData" class="mock-data-notice">
+    <p><strong>Note:</strong> Displaying mock data because the API endpoint is unavailable or returned an error.</p>
+    <p *ngIf="error">Error: {{ error }}</p>
+    <p>This is temporary data for demonstration purposes only.</p>
+  </div>
+  
+  <div class="filters-container">
+    <div class="search-box">
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        placeholder="Search by Request ID, Order ID, or Username"
+        (input)="applyFilters()">
+    </div>
+    
+    <div class="status-filter">
+      <label for="statusFilter">Filter by Status:</label>
+      <select id="statusFilter" [(ngModel)]="statusFilter" (change)="applyFilters()">
+        <option value="">All Statuses</option>
+        <option value="PENDING">Pending</option>
+        <option value="APPROVED">Approved</option>
+        <option value="REJECTED">Rejected</option>
+        <option value="COMPLETED">Completed</option>
+      </select>
+    </div>
+    
+    <button class="refresh-btn" (click)="loadReturnRequestsDirectly()">
+      Refresh Requests
+    </button>
+  </div>
+  
+  <div *ngIf="loading" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Loading return requests...</p>
+  </div>
+  
+  <div *ngIf="!loading && error && !isUsingMockData" class="error-message">
+    <h3>Error</h3>
+    <p>{{ error }}</p>
+    <div *ngIf="error.includes('permission')">
+      <p>Make sure you are logged in with an admin account.</p>
+      <p>You will be redirected to the login page shortly...</p>
+    </div>
+    <button *ngIf="!error.includes('permission')" (click)="loadReturnRequestsDirectly()">Try Again</button>
+  </div>
+  
+  <div *ngIf="!loading && !error && applyFilters().length === 0" class="no-requests">
+    <p>No return requests found matching your filters.</p>
+  </div>
+  
+  <div *ngIf="!loading && applyFilters().length > 0" class="requests-table-container">
+    <table class="requests-table">
+      <thead>
+        <tr>
+          <th>Request ID</th>
+          <th>Order Details</th>
+          <th>Customer</th>
+          <th>Product</th>
+          <th>Reason</th>
+          <th>Requested On</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let request of applyFilters()">
+          <td class="request-id">#{{ request.id }}</td>
+          <td class="order-info">
+            <p>Order #{{ request.order?.id || request.orderId }}</p>
+            <p *ngIf="request.orderItem">Item #{{ request.orderItem.id }}</p>
+          </td>
+          <td class="customer-info">
+            <p>{{ (request.user?.username || request.customer?.username) || 'Unknown User' }}</p>
+            <p class="email">{{ (request.user?.email || request.customer?.email) || '' }}</p>
+          </td>
+          <td class="product-info">
+            <p *ngIf="request.orderItem?.product">{{ request.orderItem.product.name }}</p>
+            <p *ngIf="request.product">{{ request.product.name }}</p>
+            <p *ngIf="!request.orderItem?.product && !request.product">Unknown Product</p>
+          </td>
+          <td class="return-reason">
+            <p>{{ request.reason || 'No reason specified' }}</p>
+          </td>
+          <td class="request-date">{{ formatDate(request.createdAt || request.requestDate) }}</td>
+          <td class="status">
+            <span class="status-badge" [ngStyle]="{'background-color': getStatusColor(request.status)}">
+              {{ getStatusLabel(request.status) }}
+            </span>
+            <p *ngIf="request.processedAt" class="processed-date">
+              Processed on {{ formatDate(request.processedAt) }}
+            </p>
+          </td>
+          <td class="actions">
+            <div class="action-buttons" *ngIf="request.status && request.status.toUpperCase() === 'PENDING' && !isUsingMockData">
+              <button class="approve-btn" (click)="processReturnRequest(request.id, true)">
+                Approve
+              </button>
+              <button class="reject-btn" (click)="processReturnRequest(request.id, false)">
+                Reject
+              </button>
+            </div>
+            <button class="view-order-btn" (click)="viewOrderDetails(request.order?.id || request.orderId)">
+              View Order
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div> 

@@ -11,6 +11,8 @@ import { RouterModule, RouterLinkActive } from '@angular/router';
         <a routerLink="./products" routerLinkActive="active">Products</a>
         <a routerLink="./users" routerLinkActive="active">Users</a>
         <a routerLink="./categories" routerLinkActive="active">Categories</a>
+        <a routerLink="./orders" routerLinkActive="active">Orders</a>
+        <a routerLink="./returns" routerLinkActive="active">Return Requests</a>
       </nav>
       <div class="admin-content">
         <router-outlet></router-outlet>

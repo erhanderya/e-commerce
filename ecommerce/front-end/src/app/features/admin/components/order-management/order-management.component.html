@@ -1,0 +1,83 @@
+<div class="order-management-container">
+  <h2>Order Management</h2>
+  
+  <div class="filters-container">
+    <div class="search-box">
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        placeholder="Search by Order ID, Username or Email"
+        (input)="applyFilters()">
+    </div>
+    
+    <div class="status-filter">
+      <label for="statusFilter">Filter by Status:</label>
+      <select id="statusFilter" [(ngModel)]="statusFilter" (change)="applyFilters()">
+        <option value="">All Statuses</option>
+        <option value="RECEIVED">Received</option>
+        <option value="DELIVERED">Delivered</option>
+        <option value="CANCELED">Canceled</option>
+        <option value="REFUNDED">Refunded</option>
+      </select>
+    </div>
+    
+    <button class="refresh-btn" (click)="loadAllOrders()">
+      Refresh Orders
+    </button>
+  </div>
+  
+  <div *ngIf="loading" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Loading orders...</p>
+  </div>
+  
+  <div *ngIf="!loading && error" class="error-message">
+    <p>{{ error }}</p>
+    <button (click)="loadAllOrders()">Try Again</button>
+  </div>
+  
+  <div *ngIf="!loading && !error && applyFilters().length === 0" class="no-orders">
+    <p>No orders found matching your filters.</p>
+  </div>
+  
+  <div *ngIf="!loading && !error && applyFilters().length > 0" class="orders-table-container">
+    <table class="orders-table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Total Amount</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of applyFilters()">
+          <td class="order-id">#{{ order.id }}</td>
+          <td class="customer-info">
+            <div *ngIf="order.customer">
+              <p class="customer-name">{{ order.customer.username }}</p>
+              <p class="customer-email">{{ order.customer.email }}</p>
+            </div>
+            <div *ngIf="!order.customer">
+              <p class="customer-unknown">Unknown Customer</p>
+            </div>
+          </td>
+          <td class="order-date">{{ formatDate(order.orderDate) }}</td>
+          <td class="total-amount">${{ order.totalAmount }}</td>
+          <td class="order-status">
+            <span class="status-badge" [ngStyle]="{'background-color': getOrderStatusColor(order.status)}">
+              {{ getOrderStatusLabel(order.status) }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="view-details-btn" (click)="viewOrderDetails(order.id)">
+              View Details
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div> 

@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
@@ -14,7 +15,7 @@ import { OrderTrackingComponent } from '../order-tracking/order-tracking.compone
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink, OrderTrackingComponent]
+  imports: [CommonModule, FormsModule, RouterLink, OrderTrackingComponent]
 })
 export class ProductListComponent implements OnInit {
   products: Product[] = [];
@@ -23,6 +24,10 @@ export class ProductListComponent implements OnInit {
   originalProducts: Product[] = [];
   isLoggedIn: boolean = false;
   hasActiveOrders: boolean = false;
+  activeSortOption: string = 'newest';
+  minPrice: number = 0;
+  maxPrice: number = 1000;
+  isPriceFilterActive: boolean = false;
 
   constructor(
     private productService: ProductService,
@@ -72,6 +77,13 @@ export class ProductListComponent implements OnInit {
       next: (data) => {
         this.products = data;
         this.originalProducts = [...data];
+        // Apply price filter if active
+        if (this.isPriceFilterActive) {
+          this.applyPriceFilter();
+        } else {
+          // Apply the active sorting if any
+          this.applySorting(this.activeSortOption);
+        }
       },
       error: (error) => {
         console.error('Error fetching products:', error);
@@ -93,6 +105,14 @@ export class ProductListComponent implements OnInit {
         next: (products) => {
           console.log('Products received:', products);
           this.products = products;
+          this.originalProducts = [...products];
+          // Apply price filter if active
+          if (this.isPriceFilterActive) {
+            this.applyPriceFilter();
+          } else {
+            // Apply the active sorting
+            this.applySorting(this.activeSortOption);
+          }
         },
         error: (error) => {
           console.error('Error loading products for category:', error);
@@ -115,6 +135,68 @@ export class ProductListComponent implements OnInit {
 
     if (this.selectedCategory) {
       this.selectCategory(this.selectedCategory);
+    }
+    
+    // Apply price filter if active
+    if (this.isPriceFilterActive) {
+      this.applyPriceFilter();
+    } else {
+      // Apply the active sorting
+      this.applySorting(this.activeSortOption);
+    }
+  }
+
+  applyPriceFilter(): void {
+    this.isPriceFilterActive = true;
+    
+    // If max price is 0 or less than min price, reset it to a high value
+    if (this.maxPrice <= 0 || this.maxPrice < this.minPrice) {
+      this.maxPrice = 10000; // Set to a reasonably high value
+    }
+    
+    // Filter products by price range
+    this.products = this.originalProducts.filter(product => 
+      product.price >= this.minPrice && product.price <= this.maxPrice
+    );
+    
+    // Apply sorting to the filtered products
+    this.applySorting(this.activeSortOption);
+    
+    // Show success message
+    this.alertService.success(`Showing products between $${this.minPrice} and $${this.maxPrice}`);
+  }
+
+  sortProducts(sortOption: string): void {
+    this.activeSortOption = sortOption;
+    this.applySorting(sortOption);
+  }
+
+  private applySorting(sortOption: string): void {
+    switch (sortOption) {
+      case 'priceLowToHigh':
+        this.products.sort((a, b) => a.price - b.price);
+        break;
+      case 'priceHighToLow':
+        this.products.sort((a, b) => b.price - a.price);
+        break;
+      case 'rating':
+        this.products.sort((a, b) => {
+          const ratingA = a.averageRating || 0;
+          const ratingB = b.averageRating || 0;
+          return ratingB - ratingA;
+        });
+        break;
+      case 'newest':
+      default:
+        // Reset to original product order when "Remove filter" is clicked
+        this.products = [...this.originalProducts];
+        // Re-apply price filter if active
+        if (this.isPriceFilterActive) {
+          this.products = this.products.filter(product => 
+            product.price >= this.minPrice && product.price <= this.maxPrice
+          );
+        }
+        break;
     }
   }
 

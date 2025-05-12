@@ -49,6 +49,10 @@ public class SecurityConfig {
                 // Explicitly allow sellers to update order item status
                 .requestMatchers("/api/orders/*/items/*/status/seller").hasAuthority(Role.SELLER.name())
                 
+                // Admin-specific order endpoints
+                .requestMatchers("/api/orders/return-requests/admin/**").hasAuthority(Role.ADMIN.name())
+                .requestMatchers("/api/orders/return-requests/process/**").hasAuthority(Role.ADMIN.name())
+                
                 .requestMatchers("/api/users/profile", "/api/users/profile/**").authenticated() // User profile endpoints - require auth but not admin
                 
                 // Seller/Admin endpoints for products
@@ -60,6 +64,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/all", "/api/users/{id}").hasAuthority(Role.ADMIN.name()) // Only Admins can manage users
                 .requestMatchers(HttpMethod.PUT, "/api/users/{id}").hasAuthority(Role.ADMIN.name())
                 .requestMatchers(HttpMethod.DELETE, "/api/users/{id}").hasAuthority(Role.ADMIN.name())
+                //.requestMatchers("/api/orders/**").hasAuthority(Role.ADMIN.name())
+                //.requestMatchers("/api/returns/**").hasAuthority(Role.ADMIN.name())
                 // .requestMatchers("/admin/**").hasAuthority(Role.ADMIN.name()) // Keep or adjust if you have specific /admin paths
                 
                 // Deny all others by default unless authenticated

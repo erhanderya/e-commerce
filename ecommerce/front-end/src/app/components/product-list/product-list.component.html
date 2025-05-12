@@ -17,15 +17,47 @@
         </a>
       </li>
     </ul>
+
+    <div class="price-filter">
+      <h3>Price Range</h3>
+      <div class="price-inputs">
+        <div class="min-price">
+          <label for="minPrice">Min ($)</label>
+          <input type="number" id="minPrice" [(ngModel)]="minPrice" min="0">
+        </div>
+        <div class="max-price">
+          <label for="maxPrice">Max ($)</label>
+          <input type="number" id="maxPrice" [(ngModel)]="maxPrice" min="0">
+        </div>
+      </div>
+      <button class="apply-price-filter" (click)="applyPriceFilter()">Apply</button>
+    </div>
   </aside>
 
   <div class="product-list-content">
     <div class="product-header">
       <h2>Products</h2>
       <div class="product-filters">
-        <button class="filter-btn active">Newest</button>
-        <button class="filter-btn">Price: Low to High</button>
-        <button class="filter-btn">Price: High to Low</button>
+        <button class="filter-btn" 
+                [class.active]="activeSortOption === 'newest'"
+                (click)="sortProducts('newest')">
+          No filter
+        </button>
+        <button class="filter-btn" 
+                [class.active]="activeSortOption === 'priceLowToHigh'"
+                (click)="sortProducts('priceLowToHigh')">
+          Price: Low to High
+        </button>
+        <button class="filter-btn" 
+                [class.active]="activeSortOption === 'priceHighToLow'"
+                (click)="sortProducts('priceHighToLow')">
+          Price: High to Low
+        </button>
+        <button class="filter-btn" 
+                [class.active]="activeSortOption === 'rating'"
+                (click)="sortProducts('rating')">
+          Top Rated
+        </button>
       </div>
     </div>
 
