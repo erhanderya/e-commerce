@@ -456,32 +456,28 @@ public class OrderService {
             request.setProcessedDate(new Date());
             request.setProcessorNotes(notes);
             
-            // Update order status to REFUNDED
-            order.setStatus(OrderStatus.REFUNDED);
+            // Only modify the status of the specific order item that has the return request
+            orderItem.setStatus(OrderItemStatus.REFUNDED);
+            orderItem.setRefunded(true);
+            orderItem.setRefundDate(new Date());
+            orderItem.setRefundReason("Return approved: " + notes);
             
-            // Update all order items to REFUNDED
-            for (OrderItem item : order.getItems()) {
-                // Only if the item was delivered (not already cancelled/refunded)
-                if (item.getStatus() == OrderItemStatus.DELIVERED) {
-                    item.setStatus(OrderItemStatus.REFUNDED);
-                    item.setRefunded(true);
-                    item.setRefundDate(new Date());
-                    item.setRefundReason("Return approved: " + notes);
-                    
-                    // Restore product stock
-                    Product product = item.getProduct();
-                    product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
-                    productRepository.save(product);
-                }
-            }
+            // Restore product stock only for this specific item
+            Product product = orderItem.getProduct();
+            product.setStock_quantity(product.getStock_quantity() + orderItem.getQuantity());
+            productRepository.save(product);
             
-            // Process refund if not already refunded
-            if (order.getRefundId() == null || order.getRefundId().isEmpty()) {
-                boolean refundProcessed = processRefund(order);
+            // Process partial refund for just this item
+            if (order.getPaymentId() != null && !order.getPaymentId().isEmpty()) {
+                boolean refundProcessed = processPartialRefund(
+                    order, 
+                    orderItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity())), 
+                    "Return approved for item: " + product.getName() + " - " + notes
+                );
                 
                 if (!refundProcessed) {
-                    logger.error("Failed to process refund for order ID: {} (return request ID: {})", 
-                            order.getId(), requestId);
+                    logger.error("Failed to process refund for order item ID: {} (return request ID: {})", 
+                            orderItem.getId(), requestId);
                     // Continue anyway, the seller has already approved the return
                     // Admin will need to manually process the refund
                     logger.warn("Return approved but payment refund failed - manual intervention required");
@@ -491,6 +487,10 @@ public class OrderService {
                     request.setProcessorNotes(updatedNotes);
                 }
             }
+            
+            // Update the order status based on all order items
+            order.updateOrderStatus();
+            orderRepository.save(order);
         } else {
             // Request denied
             request.setProcessed(true);
