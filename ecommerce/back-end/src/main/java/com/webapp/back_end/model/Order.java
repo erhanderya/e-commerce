@@ -25,7 +25,7 @@ public class Order {
     private Date orderDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private OrderStatus status;
 
     @Column(nullable = false)
@@ -39,10 +39,16 @@ public class Order {
     @JsonManagedReference
     private List<OrderItem> items;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ReturnRequest> returnRequests;
+
     private String paymentId;
     
     private String refundId;
 
+    @Column(name = "has_return_request", nullable = true)
+    private Boolean hasReturnRequest = false;
 
     public void setPaymentId(String paymentId) {
         this.paymentId = paymentId;
@@ -114,5 +120,21 @@ public class Order {
 
     public Long getId() {
         return id;
+    }
+
+    public List<ReturnRequest> getReturnRequests() {
+        return returnRequests;
+    }
+    
+    public void setReturnRequests(List<ReturnRequest> returnRequests) {
+        this.returnRequests = returnRequests;
+    }
+
+    public Boolean getHasReturnRequest() {
+        return hasReturnRequest;
+    }
+    
+    public void setHasReturnRequest(Boolean hasReturnRequest) {
+        this.hasReturnRequest = hasReturnRequest != null ? hasReturnRequest : false;
     }
 }

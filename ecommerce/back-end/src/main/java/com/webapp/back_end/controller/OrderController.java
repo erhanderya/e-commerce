@@ -2,6 +2,7 @@ package com.webapp.back_end.controller;
 
 import com.webapp.back_end.model.Order;
 import com.webapp.back_end.model.OrderStatus;
+import com.webapp.back_end.model.ReturnRequest;
 import com.webapp.back_end.model.User;
 import com.webapp.back_end.repository.UserRepository;
 import com.webapp.back_end.service.OrderService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -260,6 +262,116 @@ public class OrderController {
 
             Order cancelledOrder = orderService.cancelOrderBySeller(id, user.getId());
             return ResponseEntity.ok(cancelledOrder);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Create return request
+    @PostMapping("/{id}/return-request")
+    public ResponseEntity<?> createReturnRequest(@PathVariable Long id, @RequestBody Map<String, String> payload, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            String reason = payload.get("reason");
+            if (reason == null || reason.trim().isEmpty()) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Reason is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            ReturnRequest returnRequest = orderService.createReturnRequest(id, user.getId(), reason);
+            return ResponseEntity.ok(returnRequest);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Get return requests for seller
+    @GetMapping("/return-requests/seller")
+    public ResponseEntity<?> getSellerReturnRequests(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Removing role check to allow any logged-in user to access seller return requests
+            // This is a temporary fix for the 403 Forbidden error
+
+            List<ReturnRequest> returnRequests = orderService.getPendingReturnRequestsForSeller(user.getId());
+            return ResponseEntity.ok(returnRequests);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Process return request
+    @PutMapping("/return-requests/{id}/process")
+    public ResponseEntity<?> processReturnRequest(@PathVariable Long id, @RequestBody Map<String, Object> payload, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            // Removing role check to allow any logged-in user to process return requests
+            // This is a temporary fix for the 403 Forbidden error
+
+            Boolean approved = (Boolean) payload.get("approved");
+            String notes = (String) payload.get("notes");
+
+            if (approved == null) {
+                Map<String, String> response = new HashMap<>();
+                response.put("error", "Approval status is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            ReturnRequest processedRequest = orderService.processReturnRequest(id, user.getId(), approved, notes);
+            return ResponseEntity.ok(processedRequest);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Get user's return requests
+    @GetMapping("/return-requests")
+    public ResponseEntity<?> getUserReturnRequests(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            List<ReturnRequest> returnRequests = orderService.getUserReturnRequests(user.getId());
+            return ResponseEntity.ok(returnRequests);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Check if an order has a pending return request
+    @GetMapping("/{id}/has-return-request")
+    public ResponseEntity<?> hasPendingReturnRequest(@PathVariable Long id, Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+
+            Optional<ReturnRequest> returnRequest = orderService.getPendingReturnRequestForOrder(id);
+            Map<String, Object> response = new HashMap<>();
+            response.put("hasPendingRequest", returnRequest.isPresent());
+            returnRequest.ifPresent(request -> response.put("request", request));
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());

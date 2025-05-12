@@ -197,8 +197,8 @@ export class SellerDashboardComponent implements OnInit {
   loadActiveOrders(): void {
     this.orderService.getSellerOrders().subscribe({
       next: (orders) => {
-        this.activeOrderCount = orders.filter(order => 
-          order.status !== OrderStatus.DELIVERED && 
+        this.activeOrderCount = orders.filter(order =>
+          order.status !== OrderStatus.DELIVERED &&
           order.status !== OrderStatus.CANCELLED
         ).length;
       },

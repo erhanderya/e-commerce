@@ -1,60 +1,170 @@
 <div class="seller-orders">
-  <h3>Orders Containing My Products</h3>
-  
-  <div *ngIf="loading" class="loading">
-    Loading orders...
+  <h3>Orders Management</h3>
+
+  <!-- Tabs for switching between orders and return requests -->
+  <div class="return-tabs">
+    <div class="return-request-tab" [class.active]="activeTab === 'orders'" (click)="setActiveTab('orders')">
+      Orders
+    </div>
+    <div class="return-request-tab" [class.active]="activeTab === 'returns'" (click)="setActiveTab('returns')">
+      Return Requests <span *ngIf="returnRequests.length > 0">({{ returnRequests.length }})</span>
+    </div>
   </div>
-  
-  <div *ngIf="!loading && orders.length === 0" class="no-orders">
-    <p>No orders found containing your products.</p>
-  </div>
-  
-  <div *ngIf="!loading && orders.length > 0" class="order-list">
-    <div class="order-item" *ngFor="let order of orders">
-      <div class="order-header">
-        <div class="order-id">Order #{{order.id}}</div>
-        <div class="order-date">{{order.orderDate | date:'medium'}}</div>
-        <div class="order-status" [style.background-color]="getStatusColor(order.status)">
-          {{getStatusLabel(order.status)}}
-        </div>
-      </div>
-      
-      <div class="order-items">
-        <div class="order-item-row" *ngFor="let item of getSellerItems(order)">
-          <div class="product-image">
-            <img [src]="item.product.image_url || 'assets/images/product-placeholder.png'" [alt]="item.product.name">
-          </div>
-          <div class="product-details">
-            <div class="product-name">{{item.product.name}}</div>
-            <div class="product-price">Price: ${{item.price}}</div>
-            <div class="product-quantity">Quantity: {{item.quantity}}</div>
+
+  <!-- Orders Tab Content -->
+  <div class="tab-content" *ngIf="activeTab === 'orders'">
+    <div *ngIf="loading" class="loading">
+      Loading orders...
+    </div>
+
+    <div *ngIf="!loading && orders.length === 0" class="no-orders">
+      <p>No orders found containing your products.</p>
+    </div>
+
+    <div *ngIf="!loading && orders.length > 0" class="order-list">
+      <div class="order-item" *ngFor="let order of orders">
+        <div class="order-header">
+          <div class="order-id">Order #{{order.id}}</div>
+          <div class="order-date">{{order.orderDate | date:'medium'}}</div>
+          <div>
+            <div class="order-status" [style.background-color]="getStatusColor(order.status)">
+              {{getStatusLabel(order.status, order.returnRequests)}}
+            </div>
+            <span *ngIf="order.hasReturnRequest" class="return-request-badge">Return Requested</span>
           </div>
         </div>
-      </div>
-      
-      <div class="order-summary">
-        <div class="customer-info">
-          <strong>Customer:</strong> {{order.user?.firstName}} {{order.user?.lastName}}
+
+        <!-- Return request section if there is one -->
+        <div class="return-request-section" *ngIf="order.hasReturnRequest">
+          <div class="return-request-info">
+            <p><strong>Return Request Pending</strong></p>
+            <p>Please check the Return Requests tab to view and process this return request.</p>
+          </div>
         </div>
-        <div class="shipping-address">
-          <strong>Shipping to:</strong> {{formatAddress(order.shippingAddress)}}
+
+        <div class="order-items">
+          <div class="order-item-row" *ngFor="let item of getSellerItems(order)">
+            <div class="product-image">
+              <img [src]="item.product.image_url || 'assets/images/product-placeholder.png'" [alt]="item.product.name">
+            </div>
+            <div class="product-details">
+              <div class="product-name">{{item.product.name}}</div>
+              <div class="product-price">Price: ${{item.price}}</div>
+              <div class="product-quantity">Quantity: {{item.quantity}}</div>
+            </div>
+          </div>
         </div>
-        <div class="status-update">
-          <strong>Update Status:</strong>
-          <select [disabled]="isUpdatingStatus(order.id)" [(ngModel)]="order.status" (change)="updateOrderStatus(order.id!, order.status)">
-            <option [value]="OrderStatus.PENDING">Order Received</option>
-            <option [value]="OrderStatus.PREPARING">Preparing Order</option>
-            <option [value]="OrderStatus.IN_COUNTRY">Package in Country</option>
-            <option [value]="OrderStatus.IN_CITY">Package in City</option>
-            <option [value]="OrderStatus.OUT_FOR_DELIVERY">Out for Delivery</option>
-            <option [value]="OrderStatus.DELIVERED">Delivered</option>
-            <option [value]="OrderStatus.CANCELLED">Cancelled</option>
-          </select>
-          <div *ngIf="isUpdatingStatus(order.id)" class="status-spinner">
-            Updating...
+
+        <div class="order-summary">
+          <div class="customer-info">
+            <strong>Customer:</strong> {{order.user?.firstName}} {{order.user?.lastName}}
+          </div>
+          <div class="shipping-address">
+            <strong>Shipping to:</strong> {{formatAddress(order.shippingAddress)}}
+          </div>
+          <div class="status-update">
+            <strong>Update Status:</strong>
+            <select [disabled]="isUpdatingStatus(order.id) || order.hasReturnRequest === true" [(ngModel)]="order.status" (change)="updateOrderStatus(order.id!, order.status)">
+              <option [value]="OrderStatus.PENDING">Order Received</option>
+              <option [value]="OrderStatus.PREPARING">Preparing Order</option>
+              <option [value]="OrderStatus.IN_COUNTRY">Package in Country</option>
+              <option [value]="OrderStatus.IN_CITY">Package in City</option>
+              <option [value]="OrderStatus.OUT_FOR_DELIVERY">Out for Delivery</option>
+              <option [value]="OrderStatus.DELIVERED">Delivered</option>
+              <option [value]="OrderStatus.CANCELLED">Cancelled</option>
+            </select>
+            <div *ngIf="isUpdatingStatus(order.id)" class="status-spinner">
+              Updating...
+            </div>
+            <div *ngIf="order.hasReturnRequest === true" class="status-spinner">
+              Cannot update status while return request is pending
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div> 
+
+  <!-- Return Requests Tab Content -->
+  <div class="tab-content" *ngIf="activeTab === 'returns'">
+    <div *ngIf="loadingReturnRequests" class="loading">
+      Loading return requests...
+    </div>
+
+    <div *ngIf="!loadingReturnRequests && returnRequests.length === 0" class="no-orders">
+      <p>No pending return requests found.</p>
+    </div>
+
+    <div *ngIf="!loadingReturnRequests && returnRequests.length > 0" class="order-list">
+      <div class="order-item" *ngFor="let request of returnRequests">
+        <div class="order-header">
+          <div class="order-id">Return Request #{{request.id}} for Order #{{request.order?.id}}</div>
+          <div class="order-date">Requested on {{formatDate(request.requestDate)}}</div>
+        </div>
+
+        <div class="return-request-section">
+          <div class="return-request-info">
+            <h4>Return Reason:</h4>
+            <p>{{request.reason}}</p>
+          </div>
+
+          <div class="return-actions" *ngIf="!isProcessingReturn(request.id)">
+            <button class="approve-btn" (click)="openProcessModal(request, 'approve')">
+              Approve Return
+            </button>
+            <button class="reject-btn" (click)="openProcessModal(request, 'reject')">
+              Reject Return
+            </button>
+          </div>
+
+          <div *ngIf="isProcessingReturn(request.id)" class="status-spinner">
+            Processing return request...
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <div class="customer-info">
+            <strong>Customer:</strong> {{request.order?.user?.firstName}} {{request.order?.user?.lastName}}
+          </div>
+          <div class="order-status" [style.background-color]="getStatusColor(request.order?.status || OrderStatus.DELIVERED)">
+            Order Status: {{getStatusLabel(request.order?.status || OrderStatus.DELIVERED)}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Processing Return Request Modal -->
+<div *ngIf="showProcessModal" class="return-request-modal">
+  <div class="return-modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">
+        {{ processingAction === 'approve' ? 'Approve' : 'Reject' }} Return Request
+      </h3>
+      <button class="close-modal" (click)="closeProcessModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p>Order #{{ selectedReturnRequest?.order?.id }}</p>
+      <p><strong>Return Reason:</strong> {{ selectedReturnRequest?.reason }}</p>
+
+      <label class="modal-label">
+        {{ processingAction === 'approve' ? 'Approval' : 'Rejection' }} Notes:
+      </label>
+      <textarea
+        class="modal-textarea"
+        [(ngModel)]="processingNotes"
+        placeholder="Enter any notes about this decision..."></textarea>
+
+      <div class="modal-actions">
+        <button class="cancel-btn" (click)="closeProcessModal()">Cancel</button>
+        <button
+          [ngClass]="processingAction === 'approve' ? 'approve-btn' : 'reject-btn'"
+          (click)="processReturnRequest()">
+          {{ processingAction === 'approve' ? 'Approve Return' : 'Reject Return' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -7,8 +7,24 @@
   </div>
 
   <div *ngIf="!loading && error" class="error-message">
+    <div class="error-icon">
+      <i class="fa fa-exclamation-circle"></i>
+    </div>
+    <h3>Unable to load your orders</h3>
     <p>{{ error }}</p>
-    <button (click)="loadOrders()">Try Again</button>
+    <div class="error-actions">
+      <button (click)="loadOrders()" class="retry-btn">
+        <i class="fa fa-refresh"></i> Try Again
+      </button>
+    </div>
+    <div class="troubleshooting-tips">
+      <p>Troubleshooting tips:</p>
+      <ul>
+        <li>Make sure you're logged in</li>
+        <li>Check your internet connection</li>
+        <li>The server might be temporarily unavailable</li>
+      </ul>
+    </div>
   </div>
 
   <div *ngIf="!loading && !error && orders.length === 0" class="no-orders">
@@ -26,6 +42,11 @@
         <div class="order-status" [ngStyle]="{'background-color': getStatusColor(order.status)}">
           {{ getStatusLabel(order.status) }}
         </div>
+      </div>
+
+      <!-- Return Request Tag if exists -->
+      <div *ngIf="order.hasReturnRequest === true" class="return-request-tag">
+        <span>Return Request Pending</span>
       </div>
 
       <div class="order-address">
@@ -67,7 +88,48 @@
 
       <div class="order-actions">
         <a [routerLink]="['/orders', order.id]" class="view-details-btn">View Details</a>
+
+        <!-- Return Request Button (only for DELIVERED orders without existing return request) -->
+        <button *ngIf="order.status === 'DELIVERED' && order.hasReturnRequest !== true"
+                class="return-btn"
+                (click)="openReturnRequestForm(order)">
+          Request Return
+        </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Return Request Modal -->
+<div *ngIf="showReturnRequestModal" class="return-request-modal">
+  <div class="modal-content">
+    <span class="close-btn" (click)="showReturnRequestModal = false">&times;</span>
+    <h2>Request a Return</h2>
+    <p>Order #{{ selectedOrder?.id }}</p>
+
+    <div *ngIf="returnSubmitting" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Submitting your request...</p>
+    </div>
+
+    <div *ngIf="!returnSubmitting">
+      <form (submit)="submitReturnRequest()">
+        <div class="form-group">
+          <label for="returnReason">Why are you returning this order?</label>
+          <textarea
+            id="returnReason"
+            name="returnReason"
+            [(ngModel)]="returnReason"
+            rows="4"
+            placeholder="Please explain why you want to return this order..."
+            required></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" (click)="showReturnRequestModal = false" class="cancel-btn">Cancel</button>
+          <button type="submit" [disabled]="!returnReason.trim()" class="submit-btn">Submit Request</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

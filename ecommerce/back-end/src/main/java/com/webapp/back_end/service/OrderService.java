@@ -4,6 +4,7 @@ import com.webapp.back_end.model.*;
 import com.webapp.back_end.repository.OrderRepository;
 import com.webapp.back_end.repository.ProductRepository;
 import com.webapp.back_end.repository.AddressRepository;
+import com.webapp.back_end.repository.ReturnRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,9 @@ public class OrderService {
     
     @Autowired
     private PaymentService paymentService;
+    
+    @Autowired
+    private ReturnRequestRepository returnRequestRepository;
     
     /**
      * Create a new order from user's cart
@@ -207,6 +211,7 @@ public class OrderService {
             // Create refund parameters
             Map<String, Object> refundParams = new HashMap<>();
             refundParams.put("payment_intent", actualPaymentIntentId);
+            logger.info("Attempting to create refund with Stripe for PaymentIntent ID: {}", actualPaymentIntentId);
             
             // Create refund through Stripe
             Refund refund = Refund.create(refundParams);
@@ -337,5 +342,185 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         logger.info("Order ID: {} successfully canceled by seller ID: {}", orderId, sellerId);
         return savedOrder;
+    }
+
+    /**
+     * Create a return request for a delivered order
+     */
+    @Transactional
+    public ReturnRequest createReturnRequest(Long orderId, Long userId, String reason) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("You can only return your own orders");
+        }
+
+        if (order.getStatus() != OrderStatus.DELIVERED) {
+            throw new RuntimeException("Only delivered orders can be returned");
+        }
+
+        // Check if there's already any return request (processed or not) for this order
+        if (returnRequestRepository.existsByOrderId(orderId)) {
+            throw new RuntimeException("You have already submitted a return request for this order");
+        }
+
+        ReturnRequest returnRequest = new ReturnRequest();
+        returnRequest.setOrder(order);
+        returnRequest.setReason(reason);
+        returnRequest.setRequestDate(new Date());
+        returnRequest.setProcessed(false);
+        returnRequest.setApproved(false);
+
+        // Mark the order as having a return request
+        order.setHasReturnRequest(true);
+        orderRepository.save(order);
+
+        return returnRequestRepository.save(returnRequest);
+    }
+
+    /**
+     * Get all pending return requests for a seller
+     */
+    public List<ReturnRequest> getPendingReturnRequestsForSeller(Long sellerId) {
+        // Get all orders that have items sold by this seller
+        List<Order> sellerOrders = getOrdersForSeller(sellerId);
+        
+        // Filter orders that have pending return requests
+        List<Long> orderIds = sellerOrders.stream()
+                .filter(order -> order.getHasReturnRequest() != null && order.getHasReturnRequest())
+                .map(Order::getId)
+                .collect(Collectors.toList());
+                
+        if (orderIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Get all pending return requests for these orders
+        return orderIds.stream()
+                .map(id -> returnRequestRepository.findByOrderIdAndProcessed(id, false))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Process a return request (approve or reject)
+     */
+    @Transactional
+    public ReturnRequest processReturnRequest(Long requestId, Long sellerId, boolean approved, String notes) {
+        ReturnRequest returnRequest = returnRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Return request not found"));
+        
+        Order order = returnRequest.getOrder();
+        if (order == null) {
+            throw new RuntimeException("Return request has no associated order");
+        }
+        
+        // Verify the seller has items in this order
+        boolean hasSellersProduct = order.getItems().stream()
+                .anyMatch(item -> item.getProduct().getSeller().getId().equals(sellerId));
+        
+        if (!hasSellersProduct) {
+            throw new RuntimeException("You cannot process return requests for orders that don't contain your products");
+        }
+        
+        // Only process if it hasn't been processed already
+        if (returnRequest.isProcessed()) {
+            throw new RuntimeException("This return request has already been processed");
+        }
+        
+        try {
+            // First save the return request changes
+            returnRequest.setProcessed(true);
+            returnRequest.setApproved(approved);
+            returnRequest.setProcessedDate(new Date());
+            
+            // Add a special note indicating this is a return, not just a cancellation
+            // Frontend can use this to display as "Returned" even though we use CANCELLED status
+            String processedNotes = notes != null ? notes : "";
+            if (approved) {
+                processedNotes += "\n[THIS_IS_RETURN_APPROVED]"; // Special marker
+            }
+            returnRequest.setProcessorNotes(processedNotes);
+            ReturnRequest savedRequest = returnRequestRepository.save(returnRequest);
+            
+            // Then update the order separately
+            if (approved) {
+                // Explicitly set order fields to avoid null issues
+                order.setHasReturnRequest(false);
+                
+                // Use CANCELLED status instead of RETURNED to avoid DB issues
+                // Frontend will interpret this as RETURNED based on the return request
+                order.setStatus(OrderStatus.CANCELLED);
+                
+                // Try to process refund through Stripe, but continue even if it fails
+                boolean refundProcessed = false;
+                String refundError = null;
+                
+                if (order.getPaymentId() != null && !order.getPaymentId().isEmpty()) {
+                    try {
+                        refundProcessed = processRefund(order);
+                        if (refundProcessed) {
+                            logger.info("Order ID: {} was successfully refunded through return request ID: {}", 
+                                order.getId(), returnRequest.getId());
+                        } else {
+                            logger.warn("Refund processing failed for order ID: {}, but return request was still approved", 
+                                order.getId());
+                            refundError = "Payment refund failed, but return was approved. Please contact support for manual refund.";
+                        }
+                    } catch (Exception e) {
+                        logger.error("Exception during refund processing for order ID: {}: {}", 
+                            order.getId(), e.getMessage(), e);
+                        refundError = "Exception during payment refund: " + e.getMessage() + 
+                            ". Return was approved, but please contact support for manual refund.";
+                    }
+                } else {
+                    logger.warn("No payment ID found for order ID: {}, skipping refund", order.getId());
+                    refundError = "No payment ID found, return was approved but refund may need manual processing.";
+                }
+                
+                // Add refund error note to the return request if needed
+                if (refundError != null) {
+                    String updatedNotes = returnRequest.getProcessorNotes() + "\n\n" + refundError;
+                    returnRequest.setProcessorNotes(updatedNotes);
+                    returnRequestRepository.save(returnRequest);
+                }
+                
+                // Handle product inventory update - add items back to stock
+                for (OrderItem item : order.getItems()) {
+                    Product product = item.getProduct();
+                    int newQuantity = product.getStock_quantity() + item.getQuantity();
+                    product.setStock_quantity(newQuantity);
+                    productRepository.save(product);
+                }
+                
+                // Save order with CANCELLED status (interpreted as RETURNED by frontend)
+                orderRepository.save(order);
+            } else {
+                // For rejected requests, just remove the flag
+                order.setHasReturnRequest(false);
+                orderRepository.save(order);
+            }
+            
+            return savedRequest;
+        } catch (Exception e) {
+            logger.error("Error processing return request: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to process return request: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get all return requests for a user
+     */
+    public List<ReturnRequest> getUserReturnRequests(Long userId) {
+        return returnRequestRepository.findByOrderUserIdAndProcessed(userId, true);
+    }
+
+    /**
+     * Get pending return request for an order if it exists
+     */
+    public Optional<ReturnRequest> getPendingReturnRequestForOrder(Long orderId) {
+        return returnRequestRepository.findByOrderIdAndProcessed(orderId, false);
     }
 }

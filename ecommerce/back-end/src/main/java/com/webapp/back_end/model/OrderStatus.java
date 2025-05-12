@@ -7,5 +7,6 @@ public enum OrderStatus {
     IN_CITY,           // Shipment arrived in customer's city
     OUT_FOR_DELIVERY,  // On way to the address (delivery expected today)
     DELIVERED,         // Order received by customer
-    CANCELLED          // Order cancelled
+    CANCELLED,         // Order cancelled
+    RETURNED           // Order returned and refunded
 }

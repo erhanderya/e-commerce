@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError, map } from 'rxjs';
+import { Observable, throwError, map, tap } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Order, OrderCreationRequest, OrderStatus } from '../models/order.model';
+import { Order, OrderCreationRequest, OrderStatus, ReturnRequest, ReturnRequestCreation, ReturnRequestProcess } from '../models/order.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderService {
-  private apiUrl = 'http://localhost:8080/api/orders'; // Base URL
+  private apiUrl = environment.apiUrl + '/api/orders'; // Use environment variable
 
   constructor(private http: HttpClient) { }
 
@@ -24,10 +25,23 @@ export class OrderService {
 
   // Get all orders for the current user
   getUserOrders(): Observable<Order[]> {
+    console.log('OrderService - Fetching user orders from:', this.apiUrl);
     // Use the base apiUrl
     return this.http.get<Order[]>(this.apiUrl).pipe(
+      tap(orders => {
+        console.log('OrderService - Orders fetched successfully:', orders);
+      }),
       catchError(error => {
-        console.error('Error fetching user orders:', error);
+        console.error('OrderService - Error fetching user orders:', error);
+        if (error.status === 401) {
+          console.error('Authentication error - possibly invalid or expired token');
+        } else if (error.status === 403) {
+          console.error('Authorization error - user does not have permission');
+        } else if (error.status === 404) {
+          console.error('Endpoint not found');
+        } else if (error.status === 500) {
+          console.error('Server error');
+        }
         // Provide more detailed error info if available
         const errorMsg = error.error?.error || error.message || 'Failed to fetch orders';
         return throwError(() => new Error(errorMsg));
@@ -55,6 +69,56 @@ export class OrderService {
     );
   }
 
+  // Create a return request
+  createReturnRequest(orderId: number, request: ReturnRequestCreation): Observable<ReturnRequest> {
+    return this.http.post<ReturnRequest>(`${this.apiUrl}/${orderId}/return-request`, request).pipe(
+      catchError(error => {
+        console.error('Error creating return request:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to create return request'));
+      })
+    );
+  }
+
+  // Get pending return requests for seller
+  getSellerReturnRequests(): Observable<ReturnRequest[]> {
+    return this.http.get<ReturnRequest[]>(`${this.apiUrl}/return-requests/seller`).pipe(
+      catchError(error => {
+        console.error('Error fetching return requests:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch return requests'));
+      })
+    );
+  }
+
+  // Process a return request (approve/reject)
+  processReturnRequest(requestId: number, process: ReturnRequestProcess): Observable<ReturnRequest> {
+    return this.http.put<ReturnRequest>(`${this.apiUrl}/return-requests/${requestId}/process`, process).pipe(
+      catchError(error => {
+        console.error('Error processing return request:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to process return request'));
+      })
+    );
+  }
+
+  // Get all return requests for the current user
+  getUserReturnRequests(): Observable<ReturnRequest[]> {
+    return this.http.get<ReturnRequest[]>(`${this.apiUrl}/return-requests`).pipe(
+      catchError(error => {
+        console.error('Error fetching user return requests:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch return requests'));
+      })
+    );
+  }
+
+  // Check if an order has a pending return request
+  hasPendingReturnRequest(orderId: number): Observable<{hasPendingRequest: boolean, request?: ReturnRequest}> {
+    return this.http.get<{hasPendingRequest: boolean, request?: ReturnRequest}>(`${this.apiUrl}/${orderId}/has-return-request`).pipe(
+      catchError(error => {
+        console.error('Error checking return request status:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to check return request status'));
+      })
+    );
+  }
+
   // Update order status (admin only)
   updateOrderStatus(orderId: number, status: OrderStatus): Observable<Order> {
     return this.http.put<Order>(`${this.apiUrl}/${orderId}/status`, { status }).pipe(
@@ -75,26 +139,30 @@ export class OrderService {
     );
   }
 
-  // Get a user-friendly status label for display
-  getStatusLabel(status: OrderStatus): string {
-    switch (status) {
-      case OrderStatus.PENDING:
-        return 'Order Received';
-      case OrderStatus.PREPARING:
-        return 'Preparing Your Order';
-      case OrderStatus.IN_COUNTRY:
-        return 'Package Arrived in Your Country';
-      case OrderStatus.IN_CITY:
-        return 'Package Arrived in Your City';
-      case OrderStatus.OUT_FOR_DELIVERY:
-        return 'Out for Delivery Today';
-      case OrderStatus.DELIVERED:
-        return 'Delivered';
-      case OrderStatus.CANCELLED:
-        return 'Cancelled';
-      default:
-        return 'Unknown Status';
+  // Get a human-readable status label
+  getStatusLabel(status: string, returnRequests?: ReturnRequest[]): string {
+    // If returnRequests are provided, check if there's an approved return request
+    const hasApprovedReturn = returnRequests && returnRequests.some(
+      req => req.processed && req.approved && (req.processorNotes?.includes('[THIS_IS_RETURN_APPROVED]') || false)
+    );
+
+    // If it's cancelled but has an approved return request, show as "Returned & Refunded"
+    if (status === 'CANCELLED' && hasApprovedReturn) {
+      return 'Returned & Refunded';
     }
+
+    const statusMap: {[key: string]: string} = {
+      'PENDING': 'Pending',
+      'PREPARING': 'Preparing',
+      'IN_COUNTRY': 'In Country',
+      'IN_CITY': 'In City',
+      'OUT_FOR_DELIVERY': 'Out For Delivery',
+      'DELIVERED': 'Delivered',
+      'CANCELLED': 'Cancelled',
+      'RETURNED': 'Returned & Refunded'
+    };
+
+    return statusMap[status] || status;
   }
 
   // Get a color for status display
@@ -114,6 +182,8 @@ export class OrderService {
         return '#27ae60'; // green
       case OrderStatus.CANCELLED:
         return '#e74c3c'; // red
+      case OrderStatus.RETURNED:
+        return '#8e44ad'; // purple
       default:
         return '#7f8c8d'; // gray
     }

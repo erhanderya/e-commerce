@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   total_amount DECIMAL(10, 2) NOT NULL,
-  status VARCHAR(20) DEFAULT 'pending',
+  status VARCHAR(30) DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -72,3 +72,27 @@ INSERT INTO products (name, description, price, image_url, stock_quantity, categ
 -- Insert sample admin user (password: admin123)
 INSERT INTO users (username, email, password, isAdmin) VALUES
 ('admin', 'admin@example.com', '$2a$10$dM1sWqIqDgwXGsAqvVpENO3NOqFqe3IJQ/l6eLZE1HtH9bGGPFn.q', true);
+
+-- Return Request System
+
+-- Update orders table to handle longer status values and nullable has_return_request
+ALTER TABLE orders MODIFY COLUMN status VARCHAR(30);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS has_return_request BOOLEAN;
+ALTER TABLE orders MODIFY COLUMN has_return_request BOOLEAN NULL DEFAULT FALSE;
+
+-- Create return_requests table
+CREATE TABLE IF NOT EXISTS return_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  reason TEXT NOT NULL,
+  request_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  processed BOOLEAN DEFAULT FALSE,
+  approved BOOLEAN DEFAULT FALSE,
+  processed_date TIMESTAMP NULL,
+  processor_notes TEXT,
+  FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+-- Create indexes for return_requests table
+CREATE INDEX IF NOT EXISTS idx_return_requests_order_id ON return_requests(order_id);
+CREATE INDEX IF NOT EXISTS idx_return_requests_processed ON return_requests(processed);

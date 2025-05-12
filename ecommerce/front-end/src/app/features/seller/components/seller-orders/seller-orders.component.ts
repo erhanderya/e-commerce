@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../../../services/order.service';
-import { Order, OrderStatus } from '../../../../models/order.model';
+import { Order, OrderStatus, ReturnRequest } from '../../../../models/order.model';
 import { AlertService } from '../../../../services/alert.service';
 
 @Component({
@@ -98,13 +98,134 @@ import { AlertService } from '../../../../services/alert.service';
       color: #3498db;
       font-size: 0.9em;
     }
+    .return-request-badge {
+      background-color: #e74c3c;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+      font-size: 0.8em;
+    }
+    .return-request-section {
+      padding: 15px;
+      background-color: #fff3e0;
+      border-top: 1px solid #ffe0b2;
+    }
+    .return-request-info {
+      margin-bottom: 15px;
+    }
+    .return-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .approve-btn {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .approve-btn:hover {
+      background-color: #219653;
+    }
+    .reject-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .reject-btn:hover {
+      background-color: #c0392b;
+    }
+
+    .return-request-tab {
+      display: inline-block;
+      padding: 10px 20px;
+      margin-right: 10px;
+      background-color: #f5f5f5;
+      cursor: pointer;
+      border-radius: 4px 4px 0 0;
+    }
+    .return-request-tab.active {
+      background-color: #3498db;
+      color: white;
+    }
+    .tab-content {
+      margin-top: 10px;
+    }
+
+    .return-request-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .return-modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 500px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      margin: 0;
+    }
+    .close-modal {
+      font-size: 24px;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+    .modal-label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .modal-textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      min-height: 100px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
   `]
 })
 export class SellerOrdersComponent implements OnInit {
   orders: Order[] = [];
+  returnRequests: ReturnRequest[] = [];
   loading = true;
+  loadingReturnRequests = false;
   updatingOrderIds: Set<number> = new Set();
+  processingReturnIds: Set<number> = new Set();
   OrderStatus = OrderStatus; // Expose enum to template
+  activeTab: 'orders' | 'returns' = 'orders';
+
+  // For return request processing modal
+  showProcessModal = false;
+  selectedReturnRequest: ReturnRequest | null = null;
+  processingAction: 'approve' | 'reject' | null = null;
+  processingNotes = '';
 
   constructor(
     private orderService: OrderService,
@@ -113,6 +234,11 @@ export class SellerOrdersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSellerOrders();
+    this.loadReturnRequests();
+  }
+
+  setActiveTab(tab: 'orders' | 'returns'): void {
+    this.activeTab = tab;
   }
 
   loadSellerOrders(): void {
@@ -129,25 +255,39 @@ export class SellerOrdersComponent implements OnInit {
     });
   }
 
+  loadReturnRequests(): void {
+    this.loadingReturnRequests = true;
+    this.orderService.getSellerReturnRequests().subscribe({
+      next: (requests) => {
+        this.returnRequests = requests;
+        this.loadingReturnRequests = false;
+      },
+      error: (error) => {
+        this.alertService.error('Failed to load return requests: ' + error.message);
+        this.loadingReturnRequests = false;
+      }
+    });
+  }
+
   updateOrderStatus(orderId: number, newStatus: OrderStatus): void {
     this.updatingOrderIds.add(orderId);
-    
+
     this.orderService.updateSellerOrderStatus(orderId, newStatus).subscribe({
       next: (updatedOrder) => {
         this.alertService.success('Order status updated successfully');
-        
+
         // Update the order in the list
         const index = this.orders.findIndex(o => o.id === orderId);
         if (index !== -1) {
           this.orders[index] = updatedOrder;
         }
-        
+
         this.updatingOrderIds.delete(orderId);
       },
       error: (error) => {
         this.alertService.error('Failed to update order status: ' + error.message);
         this.updatingOrderIds.delete(orderId);
-        
+
         // Reload orders to get the current status
         this.loadSellerOrders();
       }
@@ -158,8 +298,12 @@ export class SellerOrdersComponent implements OnInit {
     return orderId !== undefined && this.updatingOrderIds.has(orderId);
   }
 
-  getStatusLabel(status: OrderStatus): string {
-    return this.orderService.getStatusLabel(status);
+  isProcessingReturn(returnId: number | undefined): boolean {
+    return returnId !== undefined && this.processingReturnIds.has(returnId);
+  }
+
+  getStatusLabel(status: OrderStatus, returnRequests?: ReturnRequest[]): string {
+    return this.orderService.getStatusLabel(status, returnRequests);
   }
 
   getStatusColor(status: OrderStatus): string {
@@ -176,4 +320,63 @@ export class SellerOrdersComponent implements OnInit {
     if (!address) return 'Address not available';
     return `${address.street}, ${address.city}, ${address.state}, ${address.postalCode}, ${address.country}`;
   }
-} 
+
+  formatDate(date: string | Date): string {
+    if (!date) return '';
+    return new Date(date).toLocaleString();
+  }
+
+  openProcessModal(returnRequest: ReturnRequest, action: 'approve' | 'reject'): void {
+    this.selectedReturnRequest = returnRequest;
+    this.processingAction = action;
+    this.processingNotes = '';
+    this.showProcessModal = true;
+  }
+
+  closeProcessModal(): void {
+    this.showProcessModal = false;
+    this.selectedReturnRequest = null;
+    this.processingAction = null;
+    this.processingNotes = '';
+  }
+
+  processReturnRequest(): void {
+    if (!this.selectedReturnRequest || !this.processingAction) {
+      return;
+    }
+
+    const requestId = this.selectedReturnRequest.id;
+    if (!requestId) {
+      this.alertService.error('Invalid return request');
+      return;
+    }
+
+    const isApproved = this.processingAction === 'approve';
+    this.processingReturnIds.add(requestId);
+
+    this.orderService.processReturnRequest(requestId, {
+      approved: isApproved,
+      notes: this.processingNotes
+    }).subscribe({
+      next: () => {
+        this.processingReturnIds.delete(requestId);
+        this.showProcessModal = false;
+
+        const actionText = isApproved ? 'approved' : 'rejected';
+        this.alertService.success(`Return request ${actionText} successfully`);
+
+        // Remove the request from the list
+        this.returnRequests = this.returnRequests.filter(r => r.id !== requestId);
+
+        // If we approved a return, reload orders to get updated status
+        if (isApproved) {
+          this.loadSellerOrders();
+        }
+      },
+      error: (error) => {
+        this.processingReturnIds.delete(requestId);
+        this.alertService.error(`Failed to process return request: ${error.message}`);
+      }
+    });
+  }
+}
