@@ -5,10 +5,12 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
+import { ComparisonService } from '../../services/comparison.service';
 import { Category } from '../../models/category.model';
 import { AlertService } from '../../services/alert.service';
 import { AuthService } from '../../services/auth.service';
 import { OrderTrackingComponent } from '../order-tracking/order-tracking.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-product-list',
@@ -28,10 +30,17 @@ export class ProductListComponent implements OnInit, OnDestroy {
   minPrice: number = 0;
   maxPrice: number = 1000;
   isPriceFilterActive: boolean = false;
+  
+  // Comparison mode
+  compareMode: boolean = false;
+  comparisonList: Product[] = [];
+  private compareModeSubscription?: Subscription;
+  private comparisonListSubscription?: Subscription;
 
   constructor(
     private productService: ProductService,
     private cartService: CartService,
+    private comparisonService: ComparisonService,
     private route: ActivatedRoute,
     private alertService: AlertService,
     private authService: AuthService
@@ -54,9 +63,25 @@ export class ProductListComponent implements OnInit, OnDestroy {
         this.loadProducts();
       }
     });
+    
+    // Subscribe to comparison mode changes
+    this.compareModeSubscription = this.comparisonService.getCompareMode().subscribe(mode => {
+      this.compareMode = mode;
+    });
+    
+    // Subscribe to comparison list changes
+    this.comparisonListSubscription = this.comparisonService.getComparisonList().subscribe(list => {
+      this.comparisonList = list;
+    });
   }
   
   ngOnDestroy(): void {
+    if (this.compareModeSubscription) {
+      this.compareModeSubscription.unsubscribe();
+    }
+    if (this.comparisonListSubscription) {
+      this.comparisonListSubscription.unsubscribe();
+    }
   }
 
   onActiveOrdersChange(hasActiveOrders: boolean): void {
@@ -224,5 +249,47 @@ export class ProductListComponent implements OnInit, OnDestroy {
         this.alertService.error(`Failed to add product to cart: ${message}`);
       }
     });
+  }
+  
+  // Comparison methods
+  toggleProductComparison(product: Product, event?: Event): void {
+    if (event) {
+      event.stopPropagation(); // Prevent navigation to product details
+    }
+    
+    if (product.id === undefined) {
+      this.alertService.error('Invalid product ID');
+      return;
+    }
+    
+    const isAdded = this.isInComparison(product.id);
+    
+    if (isAdded) {
+      this.comparisonService.removeFromComparison(product.id);
+      this.alertService.info(`Removed '${product.name}' from comparison`);
+    } else {
+      const success = this.comparisonService.addToComparison(product);
+      if (success) {
+        this.alertService.success(`Added '${product.name}' to comparison`);
+      } else if (this.comparisonList.length >= 2) {
+        this.alertService.warn('You can only compare 2 products at a time. Please remove one first.');
+      }
+    }
+  }
+  
+  isInComparison(productId: number | undefined): boolean {
+    if (productId === undefined) {
+      return false;
+    }
+    return this.comparisonList.some(p => p.id === productId);
+  }
+  
+  clearComparison(): void {
+    this.comparisonService.clearComparison();
+    this.alertService.info('Comparison list cleared');
+  }
+  
+  exitCompareMode(): void {
+    this.comparisonService.toggleCompareMode();
   }
 }

@@ -20,6 +20,14 @@
       display: none; /* Hide the sidebar completely */
     }
   }
+
+  &.compare-mode {
+    flex-direction: column;
+    
+    .product-list-content {
+      max-width: 100%;
+    }
+  }
 }
 
 .category-sidebar {
@@ -404,6 +412,22 @@
     text-align: center;
     margin: 0;
   }
+
+  &.in-comparison {
+    border: 2px solid var(--primary-color);
+  }
+  
+  .product-actions {
+    .compare-btn {
+      &.selected {
+        background: var(--primary-color);
+        
+        i {
+          color: white;
+        }
+      }
+    }
+  }
 }
 
 @media (max-width: 576px) {
@@ -496,6 +520,177 @@
 
     &:hover {
       background-color: #3367d6;
+    }
+  }
+}
+
+/* Comparison-related styles */
+.comparison-bar {
+  background: var(--card-bg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 20px;
+  padding: 20px;
+  width: 100%;
+  
+  .comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    
+    h3 {
+      font-size: 18px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      i {
+        color: var(--primary-color);
+      }
+    }
+    
+    .comparison-actions {
+      display: flex;
+      gap: 10px;
+      
+      button {
+        padding: 8px 12px;
+        border-radius: var(--border-radius);
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: var(--transition);
+        
+        i {
+          font-size: 14px;
+        }
+        
+        &.clear-btn {
+          background: var(--secondary-color);
+          color: var(--text-light);
+          
+          &:hover {
+            background: var(--light-gray);
+          }
+        }
+        
+        &.exit-btn {
+          background: var(--danger-color);
+          color: white;
+          
+          &:hover {
+            background: #d9534f;
+          }
+        }
+      }
+    }
+  }
+  
+  .comparison-instructions {
+    background: var(--secondary-color);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    
+    p {
+      margin: 0;
+      text-align: center;
+      color: var(--text-light);
+      font-weight: 500;
+    }
+  }
+  
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 150px repeat(2, 1fr);
+    gap: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    
+    .comparison-cell {
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      
+      &:not(:first-child) {
+        border-left: 1px solid var(--border-color);
+      }
+      
+      &.header {
+        text-align: center;
+        background: var(--secondary-color);
+        position: relative;
+        
+        .product-image {
+          width: 120px;
+          height: 120px;
+          margin: 0 auto 15px;
+          border-radius: var(--border-radius);
+          overflow: hidden;
+          
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
+        
+        h4 {
+          margin: 0 0 10px;
+          font-size: 16px;
+          font-weight: 600;
+        }
+        
+        .remove-btn {
+          background: none;
+          border: none;
+          color: var(--text-light);
+          cursor: pointer;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          margin: 0 auto;
+          
+          &:hover {
+            color: var(--danger-color);
+          }
+        }
+      }
+      
+      &.attribute {
+        font-weight: 600;
+        background: var(--card-bg);
+      }
+      
+      .price {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary-color);
+      }
+      
+      .stock {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        
+        &.in-stock {
+          background: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+        }
+        
+        &.out-of-stock {
+          background: rgba(220, 53, 69, 0.1);
+          color: #dc3545;
+        }
+      }
     }
   }
 }

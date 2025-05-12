@@ -96,6 +96,23 @@ body {
         font-weight: 600;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
+
+      .compare-link {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        position: relative;
+        transition: var(--transition);
+        
+        &.active {
+          color: var(--primary-color);
+          font-weight: 500;
+        }
+        
+        i {
+          font-size: 16px;
+        }
+      }
     }
   }
 

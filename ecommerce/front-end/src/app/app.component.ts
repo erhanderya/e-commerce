@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
+import { ComparisonService } from './services/comparison.service';
 import { AlertComponent } from './components/alert/alert.component';
 import { User } from './models/user.model';
 import { Subscription } from 'rxjs';
@@ -29,12 +30,15 @@ export class AppComponent implements OnInit {
   currentUser: User | null = null;
   cartItemCount = 0;
   showUserDropdown = false;
+  compareMode = false;
   private userSubscription?: Subscription;
   private cartSubscription?: Subscription;
+  private compareModeSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
     private cartService: CartService,
+    private comparisonService: ComparisonService,
     private router: Router
   ) {}
 
@@ -46,6 +50,10 @@ export class AppComponent implements OnInit {
     this.cartSubscription = this.cartService.getCartItems().subscribe(items => {
       this.cartItemCount = items.reduce((count, item) => count + item.quantity, 0);
     });
+    
+    this.compareModeSubscription = this.comparisonService.getCompareMode().subscribe(mode => {
+      this.compareMode = mode;
+    });
   }
 
   ngOnDestroy(): void {
@@ -54,6 +62,9 @@ export class AppComponent implements OnInit {
     }
     if (this.cartSubscription) {
       this.cartSubscription.unsubscribe();
+    }
+    if (this.compareModeSubscription) {
+      this.compareModeSubscription.unsubscribe();
     }
   }
 
@@ -68,6 +79,15 @@ export class AppComponent implements OnInit {
   toggleUserDropdown(event: Event): void {
     event.stopPropagation();
     this.showUserDropdown = !this.showUserDropdown;
+  }
+  
+  toggleCompareMode(): void {
+    this.comparisonService.toggleCompareMode();
+    
+    // Navigate to product list page if not already there
+    if (this.compareMode) {
+      this.router.navigate(['/']);
+    }
   }
 
   @HostListener('document:click')

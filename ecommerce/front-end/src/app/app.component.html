@@ -18,6 +18,10 @@
 
     <nav class="navigation">
       <div class="nav-links">
+        <a href="javascript:void(0)" class="compare-link" [class.active]="compareMode" (click)="toggleCompareMode()">
+          <i class="fa fa-exchange-alt"></i> Compare
+        </a>
+        
         <ng-container *ngIf="!currentUser">
           <a routerLink="/login">
             <i class="fa fa-user"></i> Login

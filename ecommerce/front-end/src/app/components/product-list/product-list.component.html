@@ -1,4 +1,83 @@
-<div class="product-list-container" [class.has-tracking]="isLoggedIn && hasActiveOrders">
+<div class="product-list-container" [class.has-tracking]="isLoggedIn && hasActiveOrders" [class.compare-mode]="compareMode">
+  <!-- Comparison Bar (only visible in compare mode) -->
+  <div class="comparison-bar" *ngIf="compareMode">
+    <div class="comparison-header">
+      <h3><i class="fa fa-exchange-alt"></i> Product Comparison</h3>
+      <div class="comparison-actions">
+        <button class="clear-btn" (click)="clearComparison()" *ngIf="comparisonList.length > 0">
+          <i class="fa fa-times"></i> Clear All
+        </button>
+        <button class="exit-btn" (click)="exitCompareMode()">
+          <i class="fa fa-times-circle"></i> Exit Compare Mode
+        </button>
+      </div>
+    </div>
+    
+    <div class="comparison-instructions" *ngIf="comparisonList.length < 2">
+      <p>Select up to 2 products to compare. Selected: {{comparisonList.length}}/2</p>
+    </div>
+    
+    <div class="comparison-content" *ngIf="comparisonList.length === 2">
+      <div class="comparison-grid">
+        <!-- Headers -->
+        <div class="comparison-cell header"></div>
+        <div class="comparison-cell header" *ngFor="let product of comparisonList">
+          <div class="product-image">
+            <img [src]="product.image_url" [alt]="product.name">
+          </div>
+          <h4>{{product.name}}</h4>
+          <button class="remove-btn" (click)="toggleProductComparison(product)">
+            <i class="fa fa-times"></i> Remove
+          </button>
+        </div>
+        
+        <!-- Price -->
+        <div class="comparison-cell attribute">Price</div>
+        <div class="comparison-cell" *ngFor="let product of comparisonList">
+          <span class="price">${{product.price}}</span>
+        </div>
+        
+        <!-- Description -->
+        <div class="comparison-cell attribute">Description</div>
+        <div class="comparison-cell" *ngFor="let product of comparisonList">
+          <p>{{product.description}}</p>
+        </div>
+        
+        <!-- Rating -->
+        <div class="comparison-cell attribute">Rating</div>
+        <div class="comparison-cell" *ngFor="let product of comparisonList">
+          <div class="rating">
+            <ng-container *ngFor="let star of [1,2,3,4,5]">
+              <i class="fa-solid fa-star" *ngIf="product.averageRating && star <= product.averageRating"></i>
+              <i class="fa-solid fa-star-half" *ngIf="product.averageRating && star - 0.5 <= product.averageRating && star > product.averageRating"></i>
+              <i class="fa-regular fa-star" *ngIf="!product.averageRating || (star > product.averageRating && star - 0.5 > product.averageRating)"></i>
+            </ng-container>
+            <span>({{product.averageRating ? (product.averageRating | number: '1.1-1') : '0.0'}})</span>
+          </div>
+        </div>
+        
+        <!-- Stock -->
+        <div class="comparison-cell attribute">Availability</div>
+        <div class="comparison-cell" *ngFor="let product of comparisonList">
+          <span class="stock" [class.in-stock]="product.stock_quantity > 0" [class.out-of-stock]="product.stock_quantity === 0">
+            {{product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}}
+          </span>
+        </div>
+        
+        <!-- Add to Cart -->
+        <div class="comparison-cell attribute">Action</div>
+        <div class="comparison-cell" *ngFor="let product of comparisonList">
+          <button *ngIf="product.stock_quantity > 0" class="add-to-cart" (click)="addToCart(product)">
+            Add to Cart
+          </button>
+          <p *ngIf="product.stock_quantity === 0" class="out-of-stock">
+            Out of Stock
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <aside class="category-sidebar">
     <h3>Categories</h3>
     <ul class="category-list">
@@ -64,12 +143,17 @@
     </div>
 
     <div class="products-grid">
-      <div *ngFor="let product of products; let i = index" class="product-card" [routerLink]="['/product', product.id]">
+      <div *ngFor="let product of products; let i = index" class="product-card" [routerLink]="['/product', product.id]" [class.in-comparison]="product.id !== undefined && isInComparison(product.id)">
         <div class="product-image-container">
           <img [src]="product.image_url" [alt]="product.name">
           <div class="product-actions">
             <button class="action-btn"><i class="fa-solid fa-heart"></i></button>
             <button class="action-btn" (click)="addToCart(product); $event.stopPropagation()"><i class="fa-solid fa-cart-shopping"></i></button>
+            <button *ngIf="compareMode" class="action-btn compare-btn" 
+                   [class.selected]="product.id !== undefined && isInComparison(product.id)"
+                   (click)="toggleProductComparison(product, $event)">
+              <i class="fa-solid" [class.fa-plus]="product.id === undefined || !isInComparison(product.id)" [class.fa-check]="product.id !== undefined && isInComparison(product.id)"></i>
+            </button>
           </div>
         </div>
 
