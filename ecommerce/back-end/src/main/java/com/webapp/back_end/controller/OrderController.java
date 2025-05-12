@@ -3,9 +3,12 @@ package com.webapp.back_end.controller;
 import com.webapp.back_end.model.Order;
 import com.webapp.back_end.model.OrderStatus;
 import com.webapp.back_end.model.ReturnRequest;
+import com.webapp.back_end.model.OrderItem;
 import com.webapp.back_end.model.User;
+import com.webapp.back_end.model.OrderItemStatus;
 import com.webapp.back_end.repository.UserRepository;
 import com.webapp.back_end.service.OrderService;
+import com.webapp.back_end.service.OrderItemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,6 +30,9 @@ public class OrderController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private OrderItemService orderItemService;
 
     // Create order from cart
     @PostMapping
@@ -164,51 +170,6 @@ public class OrderController {
         }
     }
 
-    // Update order status by seller (seller only, for orders containing their products)
-    @PutMapping("/{id}/seller-status")
-    public ResponseEntity<?> updateOrderStatusBySeller(@PathVariable Long id, @RequestBody Map<String, String> payload, Authentication authentication) {
-        try {
-            String email = authentication.getName();
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
-
-            // Only sellers can update order status
-            if (user.getRole() != com.webapp.back_end.model.Role.SELLER) {
-                Map<String, String> response = new HashMap<>();
-                response.put("error", "Only sellers can update order status");
-                return ResponseEntity.status(403).body(response);
-            }
-
-            OrderStatus newStatus = OrderStatus.valueOf(payload.get("status"));
-            Order order = orderService.getOrderById(id)
-                    .orElseThrow(() -> new RuntimeException("Order not found"));
-
-            // Check if this order contains any products from this seller
-            boolean hasSellersProduct = order.getItems().stream()
-                    .anyMatch(item -> item.getProduct().getSeller().getId().equals(user.getId()));
-
-            if (!hasSellersProduct) {
-                Map<String, String> response = new HashMap<>();
-                response.put("error", "This order does not contain any of your products");
-                return ResponseEntity.status(403).body(response);
-            }
-
-            // If the new status is CANCELLED, use the cancelOrderBySeller method to handle refund
-            if (newStatus == OrderStatus.CANCELLED) {
-                Order cancelledOrder = orderService.cancelOrderBySeller(id, user.getId());
-                return ResponseEntity.ok(cancelledOrder);
-            } else {
-                // For other status updates, use the normal updateOrderStatus method
-                Order updatedOrder = orderService.updateOrderStatus(id, newStatus);
-                return ResponseEntity.ok(updatedOrder);
-            }
-        } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
     // Cancel an order
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelOrder(@PathVariable Long id, Authentication authentication) {
@@ -270,7 +231,7 @@ public class OrderController {
     }
 
     // Create return request
-    @PostMapping("/{id}/return-request")
+    @PostMapping("/items/{id}/return-request")
     public ResponseEntity<?> createReturnRequest(@PathVariable Long id, @RequestBody Map<String, String> payload, Authentication authentication) {
         try {
             String email = authentication.getName();
@@ -376,6 +337,82 @@ public class OrderController {
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    // Update OrderItem status (Seller only)
+    @PutMapping("/{orderId}/items/{itemId}/status/seller")
+    public ResponseEntity<?> updateOrderItemStatusBySeller(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @RequestBody Map<String, String> payload,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User seller = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Seller not found for email: " + email));
+            
+            // Temporarily comment out role check for debugging
+            // if (seller.getRole() != com.webapp.back_end.model.Role.SELLER) {
+            //     Map<String, String> response = new HashMap<>();
+            //     response.put("error", "Only sellers can update order item status");
+            //     return ResponseEntity.status(403).body(response);
+            // }
+            
+            // Log user role for debugging
+            System.out.println("DEBUG - User role: " + seller.getRole() + ", User ID: " + seller.getId());
+            
+            String statusString = payload.get("status");
+            if (statusString == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Status is required in the request body"));
+            }
+            
+            OrderItemStatus newStatus;
+            try {
+                newStatus = OrderItemStatus.valueOf(statusString.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid status value: " + statusString));
+            }
+
+            OrderItem updatedItem = orderService.updateOrderItemStatusBySeller(orderId, itemId, seller.getId(), newStatus);
+            return ResponseEntity.ok(updatedItem);
+        } catch (RuntimeException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "An unexpected error occurred.");
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    // Refund an order item (User only)
+    @PostMapping("/items/{itemId}/refund")
+    public ResponseEntity<?> refundOrderItem(
+            @PathVariable Long itemId,
+            @RequestBody Map<String, String> payload,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+            
+            String reason = payload.get("reason");
+            if (reason == null || reason.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Reason is required for refund"));
+            }
+            
+            OrderItem refundedItem = orderItemService.refundOrderItem(itemId, reason, user.getId());
+            return ResponseEntity.ok(refundedItem);
+        } catch (RuntimeException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
         }
     }
 }

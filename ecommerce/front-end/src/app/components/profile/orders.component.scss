@@ -425,7 +425,7 @@ h2 {
 
   .order-item-header {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     padding: 15px 20px;
     background-color: #f5f7ff;
     border-bottom: 1px solid #eee;
@@ -438,9 +438,26 @@ h2 {
     }
   }
 
+  .seller-section {
+    border-bottom: 1px solid #eee;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .seller-info {
+      background-color: #f8f9fa;
+      padding: 12px 20px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+  }
+
   .order-item-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     padding: 20px;
     border-bottom: 1px solid #eee;
     align-items: center;
@@ -470,6 +487,50 @@ h2 {
           color: #444;
         }
       }
+    }
+  }
+
+  // Status indicators for items
+  .status-col {
+    span {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-pending {
+      background-color: #fff8e1;
+      color: #f57c00;
+    }
+
+    .status-processing {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .status-shipped {
+      background-color: #e0f7fa;
+      color: #0097a7;
+    }
+
+    .status-delivered {
+      background-color: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .status-cancelled {
+      background-color: #ffebee;
+      color: #d32f2f;
+    }
+
+    .status-returned {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
     }
   }
 

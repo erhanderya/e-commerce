@@ -5,6 +5,7 @@ import com.webapp.back_end.repository.OrderRepository;
 import com.webapp.back_end.repository.ProductRepository;
 import com.webapp.back_end.repository.AddressRepository;
 import com.webapp.back_end.repository.ReturnRequestRepository;
+import com.webapp.back_end.repository.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,9 @@ public class OrderService {
     @Autowired
     private ReturnRequestRepository returnRequestRepository;
     
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+    
     /**
      * Create a new order from user's cart
      */
@@ -71,7 +75,7 @@ public class OrderService {
         Order order = new Order();
         order.setUser(cart.getUser());
         order.setOrderDate(new Date());
-        order.setStatus(OrderStatus.PENDING);
+        order.setStatus(OrderStatus.RECEIVED);
         order.setShippingAddress(shippingAddress);
         order.setPaymentId(paymentId);
         
@@ -87,6 +91,7 @@ public class OrderService {
             orderItem.setProduct(cartItem.getProduct());
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setPrice(BigDecimal.valueOf(cartItem.getProduct().getPrice()));
+            orderItem.setStatus(OrderItemStatus.PENDING);
             orderItems.add(orderItem);
             
             // Update product stock
@@ -233,7 +238,7 @@ public class OrderService {
     
     /**
      * Cancel an order
-     * Only orders in PENDING or PREPARING status can be cancelled
+     * Only orders in RECEIVED status can be cancelled
      */
     @Transactional
     public Order cancelOrder(Long orderId, Long userId) {
@@ -243,42 +248,42 @@ public class OrderService {
         // Check if the order belongs to the user
         if (!order.getUser().getId().equals(userId)) {
             logger.warn("User ID: {} attempted to cancel order ID: {} which they don't own", userId, orderId);
-            throw new RuntimeException("You don't have permission to cancel this order");
+            throw new RuntimeException("This order does not belong to you");
         }
         
-        // Check if the order can be cancelled
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING) {
+        // Check if the order can be cancelled 
+        // Only orders that are RECEIVED (not yet delivered) can be cancelled
+        if (order.getStatus() != OrderStatus.RECEIVED) {
             logger.warn("Cannot cancel order ID: {} with status: {}", orderId, order.getStatus());
             throw new RuntimeException("Cannot cancel order with status: " + order.getStatus());
         }
         
-        // Check if it already has a refund ID (already refunded)
-        if (order.getRefundId() != null && !order.getRefundId().isEmpty()) {
-            logger.info("Order ID: {} already has refund ID: {}, skipping refund", orderId, order.getRefundId());
-        } else {
-            // Process refund through Stripe
-            boolean refundProcessed = processRefund(order);
-            if (!refundProcessed) {
-                logger.error("Failed to process refund for order ID: {}", orderId);
-                throw new RuntimeException("Failed to process refund. Order cannot be canceled.");
-            }
-            
-            logger.info("Order ID: {} successfully refunded", orderId);
+        // Update all order items to CANCELLED
+        for (OrderItem item : order.getItems()) {
+            item.setStatus(OrderItemStatus.CANCELLED);
         }
         
-        // Update the status to CANCELLED
-        order.setStatus(OrderStatus.CANCELLED);
+        // Update order status
+        order.setStatus(OrderStatus.CANCELED);
         
-        // Restore product quantities
+        // If order was paid, issue refund
+        if (order.getPaymentId() != null && !order.getPaymentId().isEmpty()) {
+            boolean refundProcessed = processRefund(order);
+            
+            if (!refundProcessed) {
+                logger.error("Failed to process refund for order ID: {}", orderId);
+                throw new RuntimeException("Failed to process payment refund");
+            }
+        }
+        
+        // Restore product stock
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
             productRepository.save(product);
         }
         
-        Order savedOrder = orderRepository.save(order);
-        logger.info("Order ID: {} successfully canceled", orderId);
-        return savedOrder;
+        return orderRepository.save(order);
     }
 
     /**
@@ -293,86 +298,108 @@ public class OrderService {
     
     /**
      * Cancel an order by a seller
-     * Only orders in PENDING or PREPARING status can be cancelled by a seller
+     * Only orders in RECEIVED status can be cancelled by a seller
      */
     @Transactional
     public Order cancelOrderBySeller(Long orderId, Long sellerId) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new RuntimeException("Order not found"));
         
-        // Check if this order contains any products from this seller
-        boolean hasSellersProduct = order.getItems().stream()
-                .anyMatch(item -> item.getProduct().getSeller().getId().equals(sellerId));
-
-        if (!hasSellersProduct) {
+        // Check if the order contains products from this seller
+        boolean containsSellerProducts = order.getItems().stream()
+            .anyMatch(item -> item.getProduct().getSeller().getId().equals(sellerId));
+        
+        if (!containsSellerProducts) {
             logger.warn("Seller ID: {} attempted to cancel order ID: {} which doesn't contain their products", sellerId, orderId);
-            throw new RuntimeException("This order doesn't contain any of your products");
+            throw new RuntimeException("This order doesn't contain your products");
         }
         
         // Check if the order can be cancelled
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PREPARING) {
+        // Only orders that are RECEIVED (not yet delivered) can be cancelled by seller
+        if (order.getStatus() != OrderStatus.RECEIVED) {
             logger.warn("Cannot cancel order ID: {} with status: {}", orderId, order.getStatus());
             throw new RuntimeException("Cannot cancel order with status: " + order.getStatus());
         }
         
-        // Check if it already has a refund ID (already refunded)
-        if (order.getRefundId() != null && !order.getRefundId().isEmpty()) {
-            logger.info("Order ID: {} already has refund ID: {}, skipping refund", orderId, order.getRefundId());
-        } else {
-            // Process refund through Stripe
-            boolean refundProcessed = processRefund(order);
-            if (!refundProcessed) {
-                logger.error("Failed to process refund for order ID: {}", orderId);
-                throw new RuntimeException("Failed to process refund. Order cannot be canceled.");
-            }
-            
-            logger.info("Order ID: {} successfully refunded by seller ID: {}", orderId, sellerId);
-        }
-        
-        // Update the status to CANCELLED
-        order.setStatus(OrderStatus.CANCELLED);
-        
-        // Restore product quantities
+        // Cancel only items from this seller
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
-            productRepository.save(product);
+            if (item.getProduct().getSeller().getId().equals(sellerId)) {
+                item.setStatus(OrderItemStatus.CANCELLED);
+                
+                // Restore product stock
+                Product product = item.getProduct();
+                product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
+                productRepository.save(product);
+            }
         }
         
-        Order savedOrder = orderRepository.save(order);
-        logger.info("Order ID: {} successfully canceled by seller ID: {}", orderId, sellerId);
-        return savedOrder;
+        // If all items are cancelled, cancel the entire order
+        boolean allItemsCancelled = order.getItems().stream()
+            .allMatch(item -> item.getStatus() == OrderItemStatus.CANCELLED);
+        
+        if (allItemsCancelled) {
+            order.setStatus(OrderStatus.CANCELED);
+            
+            // If order was paid, issue refund
+            if (order.getPaymentId() != null && !order.getPaymentId().isEmpty()) {
+                boolean refundProcessed = processRefund(order);
+                
+                if (!refundProcessed) {
+                    logger.error("Failed to process refund for order ID: {}", orderId);
+                    throw new RuntimeException("Failed to process payment refund");
+                }
+            }
+        } else {
+            // Otherwise, recalculate order total to exclude cancelled items
+            BigDecimal newTotal = order.getItems().stream()
+                .filter(item -> item.getStatus() != OrderItemStatus.CANCELLED)
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            order.setTotalAmount(newTotal);
+            
+            // Update order status based on item statuses
+            order.updateOrderStatus();
+        }
+        
+        return orderRepository.save(order);
     }
 
     /**
      * Create a return request for a delivered order
      */
     @Transactional
-    public ReturnRequest createReturnRequest(Long orderId, Long userId, String reason) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+    public ReturnRequest createReturnRequest(Long orderItemId, Long userId, String reason) {
+        OrderItem orderItem = orderItemRepository.findById(orderItemId)
+                .orElseThrow(() -> new RuntimeException("Order item not found"));
 
+        Order order = orderItem.getOrder();
+        
         if (!order.getUser().getId().equals(userId)) {
             throw new RuntimeException("You can only return your own orders");
         }
 
-        if (order.getStatus() != OrderStatus.DELIVERED) {
-            throw new RuntimeException("Only delivered orders can be returned");
+        if (orderItem.getStatus() != OrderItemStatus.DELIVERED) {
+            throw new RuntimeException("Only delivered items can be returned");
         }
 
-        // Check if there's already any return request (processed or not) for this order
-        if (returnRequestRepository.existsByOrderId(orderId)) {
-            throw new RuntimeException("You have already submitted a return request for this order");
+        // Check if there's already any return request for this item
+        if (orderItem.getHasReturnRequest() != null && orderItem.getHasReturnRequest()) {
+            throw new RuntimeException("You have already submitted a return request for this item");
         }
 
         ReturnRequest returnRequest = new ReturnRequest();
-        returnRequest.setOrder(order);
+        returnRequest.setOrderItem(orderItem);
         returnRequest.setReason(reason);
         returnRequest.setRequestDate(new Date());
         returnRequest.setProcessed(false);
         returnRequest.setApproved(false);
 
-        // Mark the order as having a return request
+        // Mark the item as having a return request
+        orderItem.setHasReturnRequest(true);
+        orderItemRepository.save(orderItem);
+        
+        // Also mark the order as having a return request
         order.setHasReturnRequest(true);
         orderRepository.save(order);
 
@@ -398,129 +425,277 @@ public class OrderService {
         
         // Get all pending return requests for these orders
         return orderIds.stream()
-                .map(id -> returnRequestRepository.findByOrderIdAndProcessed(id, false))
+                .map(id -> returnRequestRepository.findByOrderItemOrderIdAndProcessed(id, false))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Process a return request (approve or reject)
+     * Process a return request
      */
     @Transactional
     public ReturnRequest processReturnRequest(Long requestId, Long sellerId, boolean approved, String notes) {
-        ReturnRequest returnRequest = returnRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Return request not found"));
+        ReturnRequest request = returnRequestRepository.findById(requestId)
+            .orElseThrow(() -> new RuntimeException("Return request not found"));
         
-        Order order = returnRequest.getOrder();
-        if (order == null) {
-            throw new RuntimeException("Return request has no associated order");
+        OrderItem orderItem = request.getOrderItem();
+        Order order = orderItem.getOrder();
+        
+        // Verify the seller owns the product in this return request
+        if (!orderItem.getProduct().getSeller().getId().equals(sellerId)) {
+            logger.warn("Seller ID: {} attempted to process return request ID: {} which doesn't involve their product", 
+                    sellerId, requestId);
+            throw new RuntimeException("This return request doesn't involve your product");
         }
         
-        // Verify the seller has items in this order
-        boolean hasSellersProduct = order.getItems().stream()
-                .anyMatch(item -> item.getProduct().getSeller().getId().equals(sellerId));
-        
-        if (!hasSellersProduct) {
-            throw new RuntimeException("You cannot process return requests for orders that don't contain your products");
-        }
-        
-        // Only process if it hasn't been processed already
-        if (returnRequest.isProcessed()) {
-            throw new RuntimeException("This return request has already been processed");
-        }
-        
-        try {
-            // First save the return request changes
-            returnRequest.setProcessed(true);
-            returnRequest.setApproved(approved);
-            returnRequest.setProcessedDate(new Date());
+        // Update return request status
+        if (approved) {
+            request.setProcessed(true);
+            request.setApproved(true);
+            request.setProcessedDate(new Date());
+            request.setProcessorNotes(notes);
             
-            // Add a special note indicating this is a return, not just a cancellation
-            // Frontend can use this to display as "Returned" even though we use CANCELLED status
-            String processedNotes = notes != null ? notes : "";
-            if (approved) {
-                processedNotes += "\n[THIS_IS_RETURN_APPROVED]"; // Special marker
-            }
-            returnRequest.setProcessorNotes(processedNotes);
-            ReturnRequest savedRequest = returnRequestRepository.save(returnRequest);
+            // Update order status to REFUNDED
+            order.setStatus(OrderStatus.REFUNDED);
             
-            // Then update the order separately
-            if (approved) {
-                // Explicitly set order fields to avoid null issues
-                order.setHasReturnRequest(false);
-                
-                // Use CANCELLED status instead of RETURNED to avoid DB issues
-                // Frontend will interpret this as RETURNED based on the return request
-                order.setStatus(OrderStatus.CANCELLED);
-                
-                // Try to process refund through Stripe, but continue even if it fails
-                boolean refundProcessed = false;
-                String refundError = null;
-                
-                if (order.getPaymentId() != null && !order.getPaymentId().isEmpty()) {
-                    try {
-                        refundProcessed = processRefund(order);
-                        if (refundProcessed) {
-                            logger.info("Order ID: {} was successfully refunded through return request ID: {}", 
-                                order.getId(), returnRequest.getId());
-                        } else {
-                            logger.warn("Refund processing failed for order ID: {}, but return request was still approved", 
-                                order.getId());
-                            refundError = "Payment refund failed, but return was approved. Please contact support for manual refund.";
-                        }
-                    } catch (Exception e) {
-                        logger.error("Exception during refund processing for order ID: {}: {}", 
-                            order.getId(), e.getMessage(), e);
-                        refundError = "Exception during payment refund: " + e.getMessage() + 
-                            ". Return was approved, but please contact support for manual refund.";
-                    }
-                } else {
-                    logger.warn("No payment ID found for order ID: {}, skipping refund", order.getId());
-                    refundError = "No payment ID found, return was approved but refund may need manual processing.";
-                }
-                
-                // Add refund error note to the return request if needed
-                if (refundError != null) {
-                    String updatedNotes = returnRequest.getProcessorNotes() + "\n\n" + refundError;
-                    returnRequest.setProcessorNotes(updatedNotes);
-                    returnRequestRepository.save(returnRequest);
-                }
-                
-                // Handle product inventory update - add items back to stock
-                for (OrderItem item : order.getItems()) {
+            // Update all order items to REFUNDED
+            for (OrderItem item : order.getItems()) {
+                // Only if the item was delivered (not already cancelled/refunded)
+                if (item.getStatus() == OrderItemStatus.DELIVERED) {
+                    item.setStatus(OrderItemStatus.REFUNDED);
+                    item.setRefunded(true);
+                    item.setRefundDate(new Date());
+                    item.setRefundReason("Return approved: " + notes);
+                    
+                    // Restore product stock
                     Product product = item.getProduct();
-                    int newQuantity = product.getStock_quantity() + item.getQuantity();
-                    product.setStock_quantity(newQuantity);
+                    product.setStock_quantity(product.getStock_quantity() + item.getQuantity());
                     productRepository.save(product);
                 }
-                
-                // Save order with CANCELLED status (interpreted as RETURNED by frontend)
-                orderRepository.save(order);
-            } else {
-                // For rejected requests, just remove the flag
-                order.setHasReturnRequest(false);
-                orderRepository.save(order);
             }
             
-            return savedRequest;
-        } catch (Exception e) {
-            logger.error("Error processing return request: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to process return request: " + e.getMessage());
+            // Process refund if not already refunded
+            if (order.getRefundId() == null || order.getRefundId().isEmpty()) {
+                boolean refundProcessed = processRefund(order);
+                
+                if (!refundProcessed) {
+                    logger.error("Failed to process refund for order ID: {} (return request ID: {})", 
+                            order.getId(), requestId);
+                    // Continue anyway, the seller has already approved the return
+                    // Admin will need to manually process the refund
+                    logger.warn("Return approved but payment refund failed - manual intervention required");
+                    
+                    // Add note about failed refund
+                    String updatedNotes = notes + "\n[WARNING: Payment refund failed and needs manual processing]";
+                    request.setProcessorNotes(updatedNotes);
+                }
+            }
+        } else {
+            // Request denied
+            request.setProcessed(true);
+            request.setApproved(false);
+            request.setRejected(true);
+            request.setProcessedDate(new Date());
+            request.setProcessorNotes(notes);
+            
+            // Update the orderItem to show it has a rejected return request
+            orderItem.setHasReturnRequest(true); // Keep this true to show there was a request
+            orderItem.setStatus(OrderItemStatus.DELIVERED); // Ensure it stays as delivered
         }
+        
+        ReturnRequest savedRequest = returnRequestRepository.save(request);
+        logger.info("Return request ID: {} processed by seller ID: {}, approved: {}", 
+                requestId, sellerId, approved);
+        
+        return savedRequest;
     }
 
     /**
      * Get all return requests for a user
      */
     public List<ReturnRequest> getUserReturnRequests(Long userId) {
-        return returnRequestRepository.findByOrderUserIdAndProcessed(userId, true);
+        return returnRequestRepository.findByOrderItemOrderUserIdAndProcessed(userId, true);
     }
 
     /**
      * Get pending return request for an order if it exists
      */
     public Optional<ReturnRequest> getPendingReturnRequestForOrder(Long orderId) {
-        return returnRequestRepository.findByOrderIdAndProcessed(orderId, false);
+        return returnRequestRepository.findByOrderItemOrderIdAndProcessed(orderId, false);
+    }
+
+    /**
+     * Update an order item's status by a seller
+     */
+    @Transactional
+    public OrderItem updateOrderItemStatusBySeller(Long orderId, Long orderItemId, Long sellerId, OrderItemStatus newStatus) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        OrderItem orderItem = orderItemRepository.findById(orderItemId)
+            .orElseThrow(() -> new RuntimeException("Order item not found"));
+        
+        // Verify this item belongs to the specified order
+        if (!orderItem.getOrder().getId().equals(orderId)) {
+            logger.warn("Order item ID: {} does not belong to order ID: {}", orderItemId, orderId);
+            throw new RuntimeException("This order item does not belong to the specified order");
+        }
+        
+        // Verify the seller owns the product
+        if (!orderItem.getProduct().getSeller().getId().equals(sellerId)) {
+            logger.warn("Seller ID: {} attempted to update order item ID: {} which doesn't contain their product", 
+                    sellerId, orderItemId);
+            throw new RuntimeException("This order item doesn't contain your product");
+        }
+        
+        // Validate status transition
+        validateStatusTransition(orderItem.getStatus(), newStatus);
+        
+        // Update the order item status
+        orderItem.setStatus(newStatus);
+        orderItemRepository.save(orderItem);
+        
+        // Check if all items in order have the same status
+        boolean allItemsSameStatus = true;
+        OrderItemStatus firstItemStatus = null;
+        
+        for (OrderItem item : order.getItems()) {
+            if (firstItemStatus == null) {
+                firstItemStatus = item.getStatus();
+            } else if (item.getStatus() != firstItemStatus) {
+                allItemsSameStatus = false;
+                break;
+            }
+        }
+        
+        // Update order status based on items
+        order.updateOrderStatus();
+        orderRepository.save(order);
+        
+        logger.info("Order item ID: {} status updated to: {} by seller ID: {}", 
+                orderItemId, newStatus, sellerId);
+        
+        return orderItem;
+    }
+
+    /**
+     * Process a partial refund for a specific order item
+     * @param order The order containing the item to refund
+     * @param amount The amount to refund
+     * @param description Description for the refund
+     * @return true if refund was successful, false otherwise
+     */
+    public boolean processPartialRefund(Order order, BigDecimal amount, String description) {
+        try {
+            String paymentId = order.getPaymentId();
+            if (paymentId == null || paymentId.isEmpty()) {
+                logger.error("No payment ID found for order ID: {}", order.getId());
+                throw new RuntimeException("No payment ID found for this order");
+            }
+            
+            logger.info("Processing partial refund of {} for order ID: {} with payment ID: {}", 
+                    amount, order.getId(), paymentId);
+            
+            // Determine if this is a checkout session ID or a payment intent ID
+            String actualPaymentIntentId = paymentId;
+            
+            // If it starts with 'cs_', it's a checkout session
+            if (paymentId.startsWith("cs_")) {
+                logger.info("Detected checkout session ID '{}', retrieving associated payment intent", paymentId);
+                String sessionPaymentIntentId = getPaymentIntentFromSession(paymentId);
+                
+                if (sessionPaymentIntentId != null) {
+                    actualPaymentIntentId = sessionPaymentIntentId;
+                    logger.info("Using payment intent '{}' from session for refund", actualPaymentIntentId);
+                } else {
+                    logger.error("Failed to retrieve payment intent from session '{}'", paymentId);
+                    return false;
+                }
+            }
+            
+            // Create refund parameters with simplified approach
+            Map<String, Object> refundParams = new HashMap<>();
+            refundParams.put("payment_intent", actualPaymentIntentId);
+            refundParams.put("amount", amount.multiply(BigDecimal.valueOf(100)).longValue()); // Convert to cents
+            refundParams.put("reason", "requested_by_customer");
+            
+            if (description != null && !description.isEmpty()) {
+                refundParams.put("metadata", Map.of("description", description));
+            }
+            
+            logger.info("Attempting to create partial refund with Stripe for PaymentIntent ID: {}, amount: {}", 
+                    actualPaymentIntentId, amount);
+            
+            // Create refund through Stripe
+            Refund refund = Refund.create(refundParams);
+            logger.info("Partial refund created with ID: {} and status: {}", refund.getId(), refund.getStatus());
+            
+            return "succeeded".equals(refund.getStatus());
+        } catch (StripeException e) {
+            logger.error("Failed to process partial refund for order ID: {}: {}", order.getId(), e.getMessage(), e);
+            return false;
+        } catch (Exception e) {
+            logger.error("Unexpected error during partial refund processing for order ID: {}: {}", 
+                    order.getId(), e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Save an order
+     */
+    @Transactional
+    public Order saveOrder(Order order) {
+        return orderRepository.save(order);
+    }
+
+    /**
+     * Validate order item status transition
+     * @param currentStatus The current status of the order item
+     * @param newStatus The new status to set
+     * @throws RuntimeException if the status transition is invalid
+     */
+    private void validateStatusTransition(OrderItemStatus currentStatus, OrderItemStatus newStatus) {
+        if (currentStatus == null || newStatus == null) {
+            throw new RuntimeException("Status cannot be null");
+        }
+        
+        // Items in final states cannot be updated
+        if (currentStatus == OrderItemStatus.DELIVERED || 
+            currentStatus == OrderItemStatus.CANCELLED || 
+            currentStatus == OrderItemStatus.REFUNDED || 
+            currentStatus == OrderItemStatus.RETURNED) {
+            throw new RuntimeException("Cannot update item with status: " + currentStatus);
+        }
+        
+        // Prevent going back to earlier states
+        if (newStatus == OrderItemStatus.PENDING) {
+            throw new RuntimeException("Cannot revert to PENDING status");
+        }
+        
+        // Specific rules for each status transition
+        switch (currentStatus) {
+            case PENDING:
+                // From PENDING, can only go to PREPARING or CANCELLED
+                if (newStatus != OrderItemStatus.PREPARING && newStatus != OrderItemStatus.CANCELLED) {
+                    throw new RuntimeException("From PENDING, can only transition to PREPARING or CANCELLED");
+                }
+                break;
+            case PREPARING:
+                // From PREPARING, can only go to SHIPPED or CANCELLED
+                if (newStatus != OrderItemStatus.SHIPPED && newStatus != OrderItemStatus.CANCELLED) {
+                    throw new RuntimeException("From PREPARING, can only transition to SHIPPED or CANCELLED");
+                }
+                break;
+            case SHIPPED:
+                // From SHIPPED, can only go to DELIVERED or CANCELLED
+                if (newStatus != OrderItemStatus.DELIVERED && newStatus != OrderItemStatus.CANCELLED) {
+                    throw new RuntimeException("From SHIPPED, can only transition to DELIVERED or CANCELLED");
+                }
+                break;
+            default:
+                throw new RuntimeException("Unexpected status: " + currentStatus);
+        }
     }
 }

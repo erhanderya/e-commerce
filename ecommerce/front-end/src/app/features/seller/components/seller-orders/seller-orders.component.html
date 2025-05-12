@@ -28,7 +28,7 @@
           <div class="order-date">{{order.orderDate | date:'medium'}}</div>
           <div>
             <div class="order-status" [style.background-color]="getStatusColor(order.status)">
-              {{getStatusLabel(order.status, order.returnRequests)}}
+              {{getStatusLabel(order.status)}}
             </div>
             <span *ngIf="order.hasReturnRequest" class="return-request-badge">Return Requested</span>
           </div>
@@ -43,15 +43,43 @@
         </div>
 
         <div class="order-items">
-          <div class="order-item-row" *ngFor="let item of getSellerItems(order)">
-            <div class="product-image">
-              <img [src]="item.product.image_url || 'assets/images/product-placeholder.png'" [alt]="item.product.name">
-            </div>
-            <div class="product-details">
-              <div class="product-name">{{item.product.name}}</div>
-              <div class="product-price">Price: ${{item.price}}</div>
-              <div class="product-quantity">Quantity: {{item.quantity}}</div>
-            </div>
+          <div class="order-item-row" *ngFor="let item of order.items">
+            <!-- Only display item details and status update if it belongs to the current seller -->
+            <ng-container *ngIf="item.product.seller?.id === currentSeller?.id">
+              <div class="item-details">
+                <div class="product-image">
+                  <img [src]="item.product.image_url || 'assets/images/product-placeholder.png'" [alt]="item.product.name">
+                </div>
+                <div class="product-details">
+                  <div class="product-name">{{item.product.name}}</div>
+                  <div class="product-price">Price: ${{item.price}}</div>
+                  <div class="product-quantity">Quantity: {{item.quantity}}</div>
+                  <!-- Display Item Status -->
+                  <div class="item-status">
+                    Status: 
+                    <span [style.color]="orderService.getOrderItemStatusColor(item.status || OrderItemStatus.PENDING)">
+                      {{ orderService.getOrderItemStatusLabel(item.status || OrderItemStatus.PENDING) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="item-actions">
+                <!-- Status Update Dropdown -->
+                <select class="status-select" 
+                        [ngModel]="item.status" 
+                        (change)="updateItemStatus(order.id, item.id, $event)"
+                        [disabled]="isStatusUpdateDisabled(item.status)"
+                        *ngIf="!isStatusUpdateDisabled(item.status)" >
+                  <option *ngFor="let statusValue of getAvailableStatuses(item.status)" [value]="statusValue">
+                    {{ orderService.getOrderItemStatusLabel(statusValue) }}
+                  </option>
+                </select>
+                <!-- Show current status as text if updates are disabled -->
+                <span *ngIf="isStatusUpdateDisabled(item.status)" class="final-status-text">
+                  {{ orderService.getOrderItemStatusLabel(item.status || OrderItemStatus.PENDING) }}
+                </span> 
+              </div>
+            </ng-container>
           </div>
         </div>
 
@@ -65,13 +93,10 @@
           <div class="status-update">
             <strong>Update Status:</strong>
             <select [disabled]="isUpdatingStatus(order.id) || order.hasReturnRequest === true" [(ngModel)]="order.status" (change)="updateOrderStatus(order.id!, order.status)">
-              <option [value]="OrderStatus.PENDING">Order Received</option>
-              <option [value]="OrderStatus.PREPARING">Preparing Order</option>
-              <option [value]="OrderStatus.IN_COUNTRY">Package in Country</option>
-              <option [value]="OrderStatus.IN_CITY">Package in City</option>
-              <option [value]="OrderStatus.OUT_FOR_DELIVERY">Out for Delivery</option>
+              <option [value]="OrderStatus.RECEIVED">Order Received</option>
               <option [value]="OrderStatus.DELIVERED">Delivered</option>
-              <option [value]="OrderStatus.CANCELLED">Cancelled</option>
+              <option [value]="OrderStatus.CANCELED">Canceled</option>
+              <option [value]="OrderStatus.RETURNED">Returned</option>
             </select>
             <div *ngIf="isUpdatingStatus(order.id)" class="status-spinner">
               Updating...
@@ -98,7 +123,7 @@
     <div *ngIf="!loadingReturnRequests && returnRequests.length > 0" class="order-list">
       <div class="order-item" *ngFor="let request of returnRequests">
         <div class="order-header">
-          <div class="order-id">Return Request #{{request.id}} for Order #{{request.order?.id}}</div>
+          <div class="order-id">Return Request #{{request.id}} for Item #{{request.orderItem?.id}}</div>
           <div class="order-date">Requested on {{formatDate(request.requestDate)}}</div>
         </div>
 
@@ -106,6 +131,21 @@
           <div class="return-request-info">
             <h4>Return Reason:</h4>
             <p>{{request.reason}}</p>
+          </div>
+
+          <div class="item-details" *ngIf="request.orderItem">
+            <div class="item-name">
+              <strong>Product:</strong> {{request.orderItem.product.name}}
+            </div>
+            <div class="item-price">
+              <strong>Price:</strong> ${{request.orderItem.price}}
+            </div>
+            <div class="item-quantity">
+              <strong>Quantity:</strong> {{request.orderItem.quantity}}
+            </div>
+            <div class="item-status">
+              <strong>Status:</strong> {{getOrderItemStatusLabel(request.orderItem.status || OrderItemStatus.DELIVERED)}}
+            </div>
           </div>
 
           <div class="return-actions" *ngIf="!isProcessingReturn(request.id)">
@@ -124,10 +164,10 @@
 
         <div class="order-summary">
           <div class="customer-info">
-            <strong>Customer:</strong> {{request.order?.user?.firstName}} {{request.order?.user?.lastName}}
+            <strong>Customer Information:</strong> Customer ID {{request.orderItem?.product?.seller?.id || 'Unknown'}}
           </div>
-          <div class="order-status" [style.background-color]="getStatusColor(request.order?.status || OrderStatus.DELIVERED)">
-            Order Status: {{getStatusLabel(request.order?.status || OrderStatus.DELIVERED)}}
+          <div class="order-link">
+            <a [routerLink]="['/seller/orders']">View All Orders</a>
           </div>
         </div>
       </div>
@@ -146,7 +186,8 @@
     </div>
 
     <div class="modal-body">
-      <p>Order #{{ selectedReturnRequest?.order?.id }}</p>
+      <p>Item #{{ selectedReturnRequest?.orderItem?.id }}</p>
+      <p><strong>Product:</strong> {{ selectedReturnRequest?.orderItem?.product?.name }}</p>
       <p><strong>Return Reason:</strong> {{ selectedReturnRequest?.reason }}</p>
 
       <label class="modal-label">

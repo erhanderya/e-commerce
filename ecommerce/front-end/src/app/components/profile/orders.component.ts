@@ -3,7 +3,13 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { OrderService } from '../../services/order.service';
 import { AlertService } from '../../services/alert.service';
-import { Order, OrderStatus } from '../../models/order.model';
+import { Order, OrderStatus, OrderItem } from '../../models/order.model';
+
+interface SellerGroup {
+  sellerId: number | null;
+  sellerName: string | null;
+  items: OrderItem[];
+}
 
 @Component({
   selector: 'app-orders',
@@ -20,12 +26,46 @@ export class OrdersComponent implements OnInit {
   OrderStatus = OrderStatus; // Make enum available to template
 
   constructor(
-    private orderService: OrderService,
+    public orderService: OrderService, // Make public for template access
     private alertService: AlertService
   ) { }
 
   ngOnInit(): void {
     this.loadOrders();
+  }
+
+  // Group order items by seller
+  getItemsBySeller(order: Order | null): SellerGroup[] {
+    if (!order || !order.items || order.items.length === 0) {
+      return [];
+    }
+
+    const sellerGroups: SellerGroup[] = [];
+    const sellerMap = new Map<number | null, SellerGroup>();
+
+    // Group items by seller ID
+    for (const item of order.items) {
+      const sellerId = item.product.seller?.id || null;
+      const sellerName = item.product.seller ? 
+        `${item.product.seller.firstName || ''} ${item.product.seller.lastName || ''}`.trim() : 
+        'Unknown Seller';
+
+      if (!sellerMap.has(sellerId)) {
+        // Create new group for this seller
+        const newGroup: SellerGroup = {
+          sellerId,
+          sellerName,
+          items: []
+        };
+        sellerMap.set(sellerId, newGroup);
+        sellerGroups.push(newGroup);
+      }
+
+      // Add item to the seller's group
+      sellerMap.get(sellerId)?.items.push(item);
+    }
+
+    return sellerGroups;
   }
 
   loadOrders(): void {
@@ -87,20 +127,20 @@ export class OrdersComponent implements OnInit {
     }
   }
 
-  getStatusClass(status: string): string {
-    switch (status) {
-      case OrderStatus.PENDING:
+  getStatusClass(status: string | OrderStatus): string {
+    if (!status) return '';
+    
+    const statusStr = typeof status === 'string' ? status : OrderStatus[status as OrderStatus];
+    
+    switch (statusStr) {
+      case OrderStatus.RECEIVED:
         return 'status-pending';
-      case OrderStatus.PREPARING:
-        return 'status-processing';
-      case OrderStatus.IN_COUNTRY:
-      case OrderStatus.IN_CITY:
-      case OrderStatus.OUT_FOR_DELIVERY:
-        return 'status-shipped';
       case OrderStatus.DELIVERED:
         return 'status-delivered';
-      case OrderStatus.CANCELLED:
+      case OrderStatus.CANCELED:
         return 'status-cancelled';
+      case OrderStatus.REFUNDED:
+        return 'status-returned';
       default:
         return '';
     }
@@ -111,6 +151,6 @@ export class OrdersComponent implements OnInit {
   }
 
   canCancelOrder(status: OrderStatus): boolean {
-    return status === OrderStatus.PENDING || status === OrderStatus.PREPARING;
+    return status === OrderStatus.RECEIVED;
   }
 }

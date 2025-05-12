@@ -45,6 +45,10 @@ public class SecurityConfig {
                 // Authenticated endpoints (general)
                 .requestMatchers("/api/cart/**").authenticated() 
                 .requestMatchers("/api/orders/**").authenticated() // Assuming orders require authentication
+                
+                // Explicitly allow sellers to update order item status
+                .requestMatchers("/api/orders/*/items/*/status/seller").hasAuthority(Role.SELLER.name())
+                
                 .requestMatchers("/api/users/profile", "/api/users/profile/**").authenticated() // User profile endpoints - require auth but not admin
                 
                 // Seller/Admin endpoints for products

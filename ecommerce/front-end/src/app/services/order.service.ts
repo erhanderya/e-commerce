@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError, map, tap } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Order, OrderCreationRequest, OrderStatus, ReturnRequest, ReturnRequestCreation, ReturnRequestProcess } from '../models/order.model';
+import { Order, OrderCreationRequest, OrderStatus, ReturnRequest, ReturnRequestCreation, ReturnRequestProcess, OrderItem, OrderItemStatus } from '../models/order.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -70,8 +70,8 @@ export class OrderService {
   }
 
   // Create a return request
-  createReturnRequest(orderId: number, request: ReturnRequestCreation): Observable<ReturnRequest> {
-    return this.http.post<ReturnRequest>(`${this.apiUrl}/${orderId}/return-request`, request).pipe(
+  createReturnRequest(orderItemId: number, request: ReturnRequestCreation): Observable<ReturnRequest> {
+    return this.http.post<ReturnRequest>(`${this.apiUrl}/items/${orderItemId}/return-request`, request).pipe(
       catchError(error => {
         console.error('Error creating return request:', error);
         return throwError(() => new Error(error.error?.error || 'Failed to create return request'));
@@ -109,9 +109,9 @@ export class OrderService {
     );
   }
 
-  // Check if an order has a pending return request
-  hasPendingReturnRequest(orderId: number): Observable<{hasPendingRequest: boolean, request?: ReturnRequest}> {
-    return this.http.get<{hasPendingRequest: boolean, request?: ReturnRequest}>(`${this.apiUrl}/${orderId}/has-return-request`).pipe(
+  // Check if an order item has a pending return request
+  hasItemPendingReturnRequest(itemId: number): Observable<{hasPendingRequest: boolean, request?: ReturnRequest}> {
+    return this.http.get<{hasPendingRequest: boolean, request?: ReturnRequest}>(`${this.apiUrl}/items/${itemId}/has-return-request`).pipe(
       catchError(error => {
         console.error('Error checking return request status:', error);
         return throwError(() => new Error(error.error?.error || 'Failed to check return request status'));
@@ -140,26 +140,13 @@ export class OrderService {
   }
 
   // Get a human-readable status label
-  getStatusLabel(status: string, returnRequests?: ReturnRequest[]): string {
-    // If returnRequests are provided, check if there's an approved return request
-    const hasApprovedReturn = returnRequests && returnRequests.some(
-      req => req.processed && req.approved && (req.processorNotes?.includes('[THIS_IS_RETURN_APPROVED]') || false)
-    );
-
-    // If it's cancelled but has an approved return request, show as "Returned & Refunded"
-    if (status === 'CANCELLED' && hasApprovedReturn) {
-      return 'Returned & Refunded';
-    }
-
+  getStatusLabel(status: string): string {
     const statusMap: {[key: string]: string} = {
-      'PENDING': 'Pending',
-      'PREPARING': 'Preparing',
-      'IN_COUNTRY': 'In Country',
-      'IN_CITY': 'In City',
-      'OUT_FOR_DELIVERY': 'Out For Delivery',
+      'RECEIVED': 'Order Received',
       'DELIVERED': 'Delivered',
-      'CANCELLED': 'Cancelled',
-      'RETURNED': 'Returned & Refunded'
+      'CANCELED': 'Canceled',
+      'REFUNDED': 'Refunded',
+      'RETURNED': 'Returned'
     };
 
     return statusMap[status] || status;
@@ -168,22 +155,16 @@ export class OrderService {
   // Get a color for status display
   getStatusColor(status: OrderStatus): string {
     switch (status) {
-      case OrderStatus.PENDING:
+      case OrderStatus.RECEIVED:
         return '#f39c12'; // orange
-      case OrderStatus.PREPARING:
-        return '#3498db'; // blue
-      case OrderStatus.IN_COUNTRY:
-        return '#2980b9'; // darker blue
-      case OrderStatus.IN_CITY:
-        return '#9b59b6'; // purple
-      case OrderStatus.OUT_FOR_DELIVERY:
-        return '#1abc9c'; // teal
       case OrderStatus.DELIVERED:
         return '#27ae60'; // green
-      case OrderStatus.CANCELLED:
+      case OrderStatus.CANCELED:
         return '#e74c3c'; // red
-      case OrderStatus.RETURNED:
+      case OrderStatus.REFUNDED:
         return '#8e44ad'; // purple
+      case OrderStatus.RETURNED:
+        return '#9b59b6'; // light purple
       default:
         return '#7f8c8d'; // gray
     }
@@ -199,16 +180,6 @@ export class OrderService {
     );
   }
 
-  // Update order status as a seller (when a seller updates status of their products)
-  updateSellerOrderStatus(orderId: number, status: OrderStatus): Observable<Order> {
-    return this.http.put<Order>(`${this.apiUrl}/${orderId}/seller-status`, { status }).pipe(
-      catchError(error => {
-        console.error('Error updating order status:', error);
-        return throwError(() => new Error(error.error?.error || 'Failed to update order status'));
-      })
-    );
-  }
-
   // Check if the current user has purchased a specific product
   hasUserPurchasedProduct(productId: number): Observable<boolean> {
     return this.http.get<{hasPurchased: boolean}>(`${this.apiUrl}/has-purchased/${productId}`).pipe(
@@ -218,5 +189,55 @@ export class OrderService {
       }),
       map(response => response.hasPurchased)
     );
+  }
+
+  // Update OrderItem status (Seller only)
+  updateOrderItemStatusBySeller(orderId: number, itemId: number, status: OrderItemStatus): Observable<OrderItem> {
+    const url = `${this.apiUrl}/${orderId}/items/${itemId}/status/seller`;
+    const body = { status: status };
+    return this.http.put<OrderItem>(url, body).pipe(
+      tap(updatedItem => console.log(`Updated order item ${itemId} status to ${status}`, updatedItem)),
+      catchError(error => {
+        console.error(`Error updating order item ${itemId} status:`, error);
+        return throwError(() => new Error(error.error?.error || 'Failed to update order item status'));
+      })
+    );
+  }
+
+  // Get a human-readable status label for OrderItem
+  getOrderItemStatusLabel(status: string | OrderItemStatus): string {
+    const statusMap: {[key: string]: string} = {
+      'PENDING': 'Pending',
+      'PREPARING': 'Preparing',
+      'SHIPPED': 'Shipped',
+      'DELIVERED': 'Delivered',
+      'CANCELLED': 'Canceled',
+      'RETURNED': 'Returned',
+      'RETURN_REQUESTED': 'Return Requested'
+    };
+
+    return statusMap[status] || status;
+  }
+
+  // Get a color for OrderItem status display
+  getOrderItemStatusColor(status: OrderItemStatus): string {
+    switch (status) {
+      case OrderItemStatus.PENDING:
+        return '#f39c12'; // orange
+      case OrderItemStatus.PREPARING:
+        return '#3498db'; // blue
+      case OrderItemStatus.SHIPPED:
+        return '#2980b9'; // darker blue
+      case OrderItemStatus.DELIVERED:
+        return '#27ae60'; // green
+      case OrderItemStatus.CANCELLED:
+        return '#e74c3c'; // red
+      case OrderItemStatus.RETURNED:
+        return '#8e44ad'; // purple
+      case OrderItemStatus.RETURN_REQUESTED:
+        return '#d35400'; // dark orange
+      default:
+        return '#7f8c8d'; // gray
+    }
   }
 }

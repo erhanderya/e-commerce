@@ -1,111 +1,155 @@
 <div class="my-orders-container">
   <h2>My Orders</h2>
-
-  <div *ngIf="loading" class="loading-spinner">
-    <div class="spinner"></div>
-    <p>Loading your orders...</p>
-  </div>
-
-  <div *ngIf="!loading && error" class="error-message">
-    <div class="error-icon">
-      <i class="fa fa-exclamation-circle"></i>
+  
+  <!-- Tabs for switching between orders and return requests -->
+  <div class="return-tabs">
+    <div class="return-request-tab" [class.active]="activeTab === 'orders'" (click)="setActiveTab('orders')">
+      Orders
     </div>
-    <h3>Unable to load your orders</h3>
-    <p>{{ error }}</p>
-    <div class="error-actions">
-      <button (click)="loadOrders()" class="retry-btn">
-        <i class="fa fa-refresh"></i> Try Again
-      </button>
-    </div>
-    <div class="troubleshooting-tips">
-      <p>Troubleshooting tips:</p>
-      <ul>
-        <li>Make sure you're logged in</li>
-        <li>Check your internet connection</li>
-        <li>The server might be temporarily unavailable</li>
-      </ul>
+    <div class="return-request-tab" [class.active]="activeTab === 'returns'" (click)="setActiveTab('returns')">
+      Return Requests
     </div>
   </div>
 
-  <div *ngIf="!loading && !error && orders.length === 0" class="no-orders">
-    <p>You haven't placed any orders yet.</p>
-    <a routerLink="/products" class="shop-now-btn">Shop Now</a>
-  </div>
-
-  <div *ngIf="!loading && !error && orders.length > 0" class="orders-list">
-    <div *ngFor="let order of orders" class="order-card">
-      <div class="order-header">
-        <div class="order-info">
-          <h3>Order #{{ order.id }}</h3>
-          <p class="order-date">Placed on {{ formatDate(order.orderDate) }}</p>
+  <!-- Orders Tab Content -->
+  <div class="tab-content" *ngIf="activeTab === 'orders'">
+    <div *ngIf="loading" class="loading-indicator">Loading your orders...</div>
+    
+    <div *ngIf="!loading && orders.length === 0" class="no-orders">
+      <p>You don't have any orders yet.</p>
+    </div>
+    
+    <div *ngIf="!loading && orders.length > 0" class="orders-list">
+      <div *ngFor="let order of orders" class="order-card">
+        <div class="order-header">
+          <div class="order-id">
+            <h3>Order #{{ order.id }}</h3>
+          </div>
+          <div class="order-date">
+            <span>{{ order.orderDate | date:'medium' }}</span>
+          </div>
+          <div class="order-status">
+            <span class="status-badge" [ngStyle]="{'background-color': getStatusColor(order.status)}">
+              {{ getOrderStatusLabel(order.status) }}
+            </span>
+          </div>
         </div>
-        <div class="order-status" [ngStyle]="{'background-color': getStatusColor(order.status)}">
-          {{ getStatusLabel(order.status) }}
+    
+        <div class="order-address">
+          <h4>Shipping Address</h4>
+          <p>{{ order.shippingAddress.street }}, {{ order.shippingAddress.city }}, {{ order.shippingAddress.state }} {{ order.shippingAddress.zipCode }}, {{ order.shippingAddress.country }}</p>
+        </div>
+    
+        <div class="order-items">
+          <h4>Order Items</h4>
+          
+          <!-- Group items by seller -->
+          <div *ngFor="let seller of getItemsBySeller(order)" class="seller-group">
+            <div class="seller-header" *ngIf="seller.items.length > 0">
+              <span>Seller: {{seller.sellerName || 'Unknown Seller'}}</span>
+            </div>
+            
+            <div class="order-item" *ngFor="let item of seller.items">
+              <div class="item-image">
+                <img [src]="item.product.image_url || '/assets/images/no-image.png'" [alt]="item.product.name">
+              </div>
+              <div class="item-details">
+                <h5>{{item.product.name}}</h5>
+                <div class="item-quantity">Quantity: {{item.quantity}}</div>
+                <div class="item-price">Price: ${{item.price}}</div>
+                <div class="item-status">
+                  <span class="status-badge" [ngStyle]="{'background-color': item.status ? getOrderItemStatusColor(item.status) : getStatusColor(order.status)}">
+                    {{ item.status ? getOrderItemStatusLabel(item.status) : getOrderStatusLabel(order.status) }}
+                  </span>
+                  <span class="return-request-badge" *ngIf="item.hasReturnRequest && !item.returnRejected">Return Requested</span>
+                  <span class="return-rejected-badge" *ngIf="item.returnRejected">Return Rejected</span>
+                </div>
+                
+                <!-- Item return button (only for DELIVERED items without return request) -->
+                <button *ngIf="canReturnItem(item)" 
+                        class="return-item-btn"
+                        (click)="openReturnItemModal(item)">
+                  <i class="fas fa-undo"></i> Request Return
+                </button>
+                
+                <!-- Display rejection reason if available -->
+                <div *ngIf="item.returnRejected" class="rejection-details">
+                  <p><strong>Reason for rejection:</strong> {{ getRejectionReason(item) }}</p>
+                  <p><small>Rejected on: {{ getRejectionDate(item) }}</small></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <div class="order-total">
+          <h4>Total: ${{ order.totalAmount }}</h4>
+        </div>
+    
+        <div class="order-actions">
+          <a [routerLink]="['/orders', order.id]" class="view-details-btn">View Details</a>
         </div>
       </div>
-
-      <!-- Return Request Tag if exists -->
-      <div *ngIf="order.hasReturnRequest === true" class="return-request-tag">
-        <span>Return Request Pending</span>
-      </div>
-
-      <div class="order-address">
-        <h4>Shipping Address</h4>
-        <p>{{ order.shippingAddress.street }}, {{ order.shippingAddress.city }}, {{ order.shippingAddress.state }} {{ order.shippingAddress.zipCode }}, {{ order.shippingAddress.country }}</p>
-      </div>
-
-      <div class="order-items">
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Price</th>
-              <th>Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of order.items">
-              <td class="product-info">
-                <div *ngIf="item.product.image_url" class="product-image">
-                  <img [src]="item.product.image_url" [alt]="item.product.name">
-                </div>
-                <div class="product-name">
-                  <a [routerLink]="['/products', item.product.id]">{{ item.product.name }}</a>
-                </div>
-              </td>
-              <td>{{ item.quantity }}</td>
-              <td>${{ item.price }}</td>
-              <td>${{ item.quantity * item.price }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="order-total">
-        <h4>Total: ${{ order.totalAmount }}</h4>
-      </div>
-
-      <div class="order-actions">
-        <a [routerLink]="['/orders', order.id]" class="view-details-btn">View Details</a>
-
-        <!-- Return Request Button (only for DELIVERED orders without existing return request) -->
-        <button *ngIf="order.status === 'DELIVERED' && order.hasReturnRequest !== true"
-                class="return-btn"
-                (click)="openReturnRequestForm(order)">
-          Request Return
-        </button>
+    </div>
+  </div>
+  
+  <!-- Return Requests Tab Content -->
+  <div class="tab-content" *ngIf="activeTab === 'returns'">
+    <div *ngIf="loadingReturnRequests" class="loading-indicator">Loading your return requests...</div>
+    
+    <div *ngIf="!loadingReturnRequests && returnRequests.length === 0" class="no-returns">
+      <p>You don't have any processed return requests yet.</p>
+    </div>
+    
+    <div *ngIf="!loadingReturnRequests && returnRequests.length > 0" class="return-requests-list">
+      <div *ngFor="let request of returnRequests" class="return-request-card">
+        <div class="return-request-header">
+          <div class="return-id">
+            <h3>Return Request #{{ request.id }}</h3>
+          </div>
+          <div class="return-date">
+            <span>Requested on: {{ formatDate(request.requestDate) }}</span>
+          </div>
+          <div class="return-status">
+            <span class="status-badge" [ngStyle]="{'background-color': getReturnStatusColor(request.approved)}">
+              {{ getReturnStatusLabel(request.approved) }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="return-item-details" *ngIf="request.orderItem">
+          <div class="item-info">
+            <h4>{{ request.orderItem.product.name }}</h4>
+            <p>Item #{{ request.orderItem.id }}</p>
+            <p>Quantity: {{ request.orderItem.quantity }}</p>
+            <p>Price: ${{ request.orderItem.price }}</p>
+          </div>
+          
+          <div class="return-reason">
+            <h4>Return Reason:</h4>
+            <p>{{ request.reason }}</p>
+          </div>
+          
+          <div class="return-response" *ngIf="request.processed">
+            <h4>Response:</h4>
+            <p [ngClass]="{'rejection-text': request.rejected}">{{ request.processorNotes || 'No additional notes provided.' }}</p>
+            <p *ngIf="request.processedDate">Processed on: {{ formatDate(request.processedDate) }}</p>
+            <div *ngIf="request.rejected" class="rejection-notice">
+              <p>Your return request was rejected. If you have any questions, please contact the seller directly.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Return Request Modal -->
-<div *ngIf="showReturnRequestModal" class="return-request-modal">
+<!-- Return Item Modal -->
+<div *ngIf="showReturnItemModal" class="return-request-modal">
   <div class="modal-content">
-    <span class="close-btn" (click)="showReturnRequestModal = false">&times;</span>
+    <span class="close-btn" (click)="showReturnItemModal = false">&times;</span>
     <h2>Request a Return</h2>
-    <p>Order #{{ selectedOrder?.id }}</p>
+    <p *ngIf="selectedItem">Item: {{ selectedItem.product.name }}</p>
 
     <div *ngIf="returnSubmitting" class="loading-spinner">
       <div class="spinner"></div>
@@ -113,20 +157,20 @@
     </div>
 
     <div *ngIf="!returnSubmitting">
-      <form (submit)="submitReturnRequest()">
+      <form (submit)="submitItemReturnRequest()">
         <div class="form-group">
-          <label for="returnReason">Why are you returning this order?</label>
+          <label for="returnReason">Why are you returning this item?</label>
           <textarea
             id="returnReason"
             name="returnReason"
             [(ngModel)]="returnReason"
             rows="4"
-            placeholder="Please explain why you want to return this order..."
+            placeholder="Please explain why you want to return this item..."
             required></textarea>
         </div>
 
         <div class="form-actions">
-          <button type="button" (click)="showReturnRequestModal = false" class="cancel-btn">Cancel</button>
+          <button type="button" (click)="showReturnItemModal = false" class="cancel-btn">Cancel</button>
           <button type="submit" [disabled]="!returnReason.trim()" class="submit-btn">Submit Request</button>
         </div>
       </form>

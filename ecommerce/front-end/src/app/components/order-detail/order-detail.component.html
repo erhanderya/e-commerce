@@ -27,7 +27,7 @@
     </div>
 
     <!-- Order Tracking System -->
-    <div class="order-tracking-section" *ngIf="order.status !== OrderStatus.CANCELLED">
+    <div class="order-tracking-section" *ngIf="order.status !== OrderStatus.CANCELED">
       <h3>Order Tracking</h3>
 
       <div class="tracking-bar">
@@ -36,29 +36,9 @@
         </div>
 
         <div class="tracking-steps">
-          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.PENDING, order.status)}">
+          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.RECEIVED, order.status)}">
             <div class="step-indicator"></div>
             <p>Order Received</p>
-          </div>
-
-          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.PREPARING, order.status)}">
-            <div class="step-indicator"></div>
-            <p>Preparing</p>
-          </div>
-
-          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.IN_COUNTRY, order.status)}">
-            <div class="step-indicator"></div>
-            <p>In Your Country</p>
-          </div>
-
-          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.IN_CITY, order.status)}">
-            <div class="step-indicator"></div>
-            <p>In Your City</p>
-          </div>
-
-          <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.OUT_FOR_DELIVERY, order.status)}">
-            <div class="step-indicator"></div>
-            <p>Out for Delivery</p>
           </div>
 
           <div class="tracking-step" [ngClass]="{'completed': isStatusCompleted(OrderStatus.DELIVERED, order.status)}">
@@ -75,13 +55,10 @@
       <div class="status-update-form">
         <label for="orderStatus">Update Order Status:</label>
         <select id="orderStatus" [(ngModel)]="selectedStatus" [disabled]="updatingStatus">
-          <option [value]="OrderStatus.PENDING">Order Received</option>
-          <option [value]="OrderStatus.PREPARING">Preparing</option>
-          <option [value]="OrderStatus.IN_COUNTRY">In Country</option>
-          <option [value]="OrderStatus.IN_CITY">In City</option>
-          <option [value]="OrderStatus.OUT_FOR_DELIVERY">Out for Delivery</option>
+          <option [value]="OrderStatus.RECEIVED">Order Received</option>
           <option [value]="OrderStatus.DELIVERED">Delivered</option>
-          <option [value]="OrderStatus.CANCELLED">Cancelled</option>
+          <option [value]="OrderStatus.CANCELED">Canceled</option>
+          <option [value]="OrderStatus.REFUNDED">Refunded</option>
         </select>
         <button (click)="updateOrderStatus()" [disabled]="updatingStatus || selectedStatus === order.status">
           {{ updatingStatus ? 'Updating...' : 'Update Status' }}
@@ -105,43 +82,126 @@
       </div>
     </div>
 
+    <!-- Order Actions -->
+    <div class="order-actions-container">
+      <div class="order-actions">
+        <button 
+          *ngIf="order.status === OrderStatus.DELIVERED && !order.hasReturnRequest" 
+          class="return-order-btn" 
+          (click)="openOrderReturnModal()">
+          Request Return for All Items
+        </button>
+      </div>
+    </div>
+
     <!-- Order Items -->
     <div class="order-items-section">
       <h3>Order Items</h3>
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Price</th>
-            <th>Quantity</th>
-            <th>Subtotal</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of order.items">
-            <td class="product-info">
-              <div *ngIf="item.product.image_url" class="product-image">
-                <img [src]="item.product.image_url" [alt]="item.product.name">
-              </div>
-              <div class="product-details">
-                <a [routerLink]="['/products', item.product.id]" class="product-name">{{ item.product.name }}</a>
-                <p *ngIf="item.product.description" class="product-description">
-                  {{ item.product.description.length > 100 ? (item.product.description | slice:0:100) + '...' : item.product.description }}
-                </p>
-              </div>
-            </td>
-            <td class="price">${{ item.price }}</td>
-            <td class="quantity">{{ item.quantity }}</td>
-            <td class="subtotal">${{ item.quantity * item.price }}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="3" class="text-right"><strong>Total:</strong></td>
-            <td>${{ order.totalAmount }}</td>
-          </tr>
-        </tfoot>
-      </table>
+      
+      <!-- Group items by seller -->
+      <div *ngFor="let seller of getItemsBySeller(order)" class="seller-group">
+        <div class="seller-header" *ngIf="seller.items.length > 0">
+          <span>Seller: {{seller.sellerName || 'Unknown Seller'}}</span>
+        </div>
+        
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Status</th>
+              <th>Subtotal</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let item of seller.items">
+              <!-- Regular item row -->
+              <tr>
+                <td class="product-info">
+                  <div *ngIf="item.product.image_url" class="product-image">
+                    <img [src]="item.product.image_url" [alt]="item.product.name">
+                  </div>
+                  <div class="product-details">
+                    <a [routerLink]="['/products', item.product.id]" class="product-name">{{ item.product.name }}</a>
+                    <p *ngIf="item.product.description" class="product-description">
+                      {{ item.product.description.length > 100 ? (item.product.description | slice:0:100) + '...' : item.product.description }}
+                    </p>
+                  </div>
+                </td>
+                <td class="price">${{ item.price }}</td>
+                <td class="quantity">{{ item.quantity }}</td>
+                <td class="status">
+                  <span class="status-badge" [ngStyle]="{'background-color': item.status ? getOrderStatusColor(item.status) : getOrderStatusColor(order.status)}">
+                    {{ item.status ? getOrderStatusLabel(item.status) : getOrderStatusLabel(order.status) }}
+                  </span>
+                  <span class="return-request-badge" *ngIf="item.hasReturnRequest && !item.returnRejected">Return Requested</span>
+                  <span class="return-rejected-badge" *ngIf="item.returnRejected">Return Rejected</span>
+                </td>
+                <td class="subtotal">${{ item.quantity * item.price }}</td>
+                <td class="actions" *ngIf="canReturnItem(item)">
+                  <button class="return-btn" (click)="openReturnItemModal(item)">
+                    <i class="fas fa-undo"></i> Return
+                  </button>
+                </td>
+              </tr>
+              
+              <!-- Rejection details row - only shown when return is rejected -->
+              <tr *ngIf="item.returnRejected" class="rejection-details-row">
+                <td colspan="6">
+                  <div class="rejection-details">
+                    <p><strong>Reason for rejection:</strong> {{ getRejectionReason(item) }}</p>
+                    <p *ngIf="getRejectionDate(item)"><small>Rejected on: {{ getRejectionDate(item) }}</small></p>
+                    <div class="rejection-notice">
+                      <p>Your return request was rejected. If you have any questions, please contact the seller directly.</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="order-total">
+        <span>Total: ${{ order.totalAmount }}</span>
+      </div>
     </div>
   </ng-container>
+</div>
+
+<!-- Return Item Modal -->
+<div *ngIf="showReturnItemModal" class="return-request-modal">
+  <div class="modal-content">
+    <span class="close-btn" (click)="showReturnItemModal = false">&times;</span>
+    <h2>{{ selectedItem ? 'Request a Return' : 'Request Return for All Items' }}</h2>
+    <p *ngIf="selectedItem">Item: {{ selectedItem.product.name }}</p>
+    <p *ngIf="!selectedItem">This will request a return for all eligible items in this order.</p>
+
+    <div *ngIf="returnSubmitting" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Submitting your request...</p>
+    </div>
+
+    <div *ngIf="!returnSubmitting">
+      <form (submit)="submitItemReturnRequest()">
+        <div class="form-group">
+          <label for="returnReason">Why are you returning this item?</label>
+          <textarea
+            id="returnReason"
+            name="returnReason"
+            [(ngModel)]="returnReason"
+            rows="4"
+            placeholder="Please explain why you want to return this item..."
+            required></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" (click)="showReturnItemModal = false" class="cancel-btn">Cancel</button>
+          <button type="submit" [disabled]="!returnReason.trim()" class="submit-btn">Submit Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>

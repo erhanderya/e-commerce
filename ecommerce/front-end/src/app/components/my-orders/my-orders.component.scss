@@ -439,3 +439,426 @@
     }
   }
 }
+
+.seller-group {
+  margin-bottom: 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .seller-header {
+    background-color: #f8f9fa;
+    padding: 10px 15px;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  .order-item {
+    display: flex;
+    padding: 15px;
+    border-bottom: 1px solid #e5e5e5;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.item-image {
+  width: 80px;
+  height: 80px;
+  margin-right: 15px;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+}
+
+.item-details {
+  flex: 1;
+  
+  h5 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .item-quantity, .item-price {
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .item-status {
+    margin-top: 10px;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+
+// Refund button styles
+.refund-item-btn {
+  padding: 5px 10px;
+  background-color: #e67e22;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 5px;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: #d35400;
+  }
+}
+
+// Refunded badge styles
+.refunded-badge {
+  background-color: #e67e22;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+
+// Refund info styles
+.refund-info {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9rem;
+
+  p {
+    margin: 3px 0;
+    color: #555;
+  }
+}
+
+// Refund modal (similar to return request modal)
+.refund-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+  .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #999;
+      transition: color 0.3s;
+
+      &:hover {
+        color: #333;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: inherit;
+        resize: vertical;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+
+      button {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+
+        &.cancel-btn {
+          background-color: #f1f1f1;
+          color: #333;
+
+          &:hover {
+            background-color: #e0e0e0;
+          }
+        }
+
+        &.submit-btn {
+          background-color: #e67e22;
+          color: white;
+
+          &:hover {
+            background-color: #d35400;
+          }
+
+          &:disabled {
+            background-color: #f1c40f;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Tab styles
+.return-tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+  
+  .return-request-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    
+    &:hover {
+      background-color: #f5f5f5;
+    }
+    
+    &.active {
+      border-bottom: 3px solid #3498db;
+      color: #3498db;
+      font-weight: 700;
+    }
+  }
+}
+
+.tab-content {
+  min-height: 200px;
+}
+
+// Return requests list styles
+.return-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  
+  .return-request-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    
+    .return-request-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+      
+      .return-id h3 {
+        margin: 0;
+      }
+      
+      .return-date {
+        color: #7f8c8d;
+        font-size: 0.9em;
+      }
+      
+      .status-badge {
+        padding: 5px 10px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        font-size: 0.9em;
+      }
+    }
+    
+    .return-item-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+      
+      .item-info h4 {
+        margin-top: 0;
+      }
+      
+      .return-reason h4, .return-response h4 {
+        margin-top: 0;
+        color: #555;
+      }
+      
+      .return-response {
+        grid-column: 1 / -1;
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 3px solid #3498db;
+      }
+    }
+  }
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+  color: #7f8c8d;
+}
+
+.no-returns {
+  text-align: center;
+  padding: 30px;
+  color: #7f8c8d;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+// Update return-item-btn styles to match return-btn in order detail component
+.return-item-btn {
+  background-color: #e67e22;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 8px;
+
+  &:hover {
+    background-color: #d35400;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+// Update return-request-badge styles
+.return-request-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 8px;
+  background-color: #f39c12;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+// Add return-rejected-badge styles
+.return-rejected-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 8px;
+  background-color: #e74c3c;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+// Styling for rejection details
+.rejection-details {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #fff5f5;
+  border-left: 3px solid #e74c3c;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  
+  p {
+    margin: 4px 0;
+    color: #555;
+    
+    strong {
+      color: #333;
+    }
+    
+    small {
+      color: #777;
+      font-style: italic;
+    }
+  }
+}
+
+.rejection-text {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.rejection-notice {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #fff5f5;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  
+  p {
+    margin: 0;
+    color: #e74c3c;
+  }
+}

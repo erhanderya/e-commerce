@@ -121,24 +121,39 @@
             <div class="item-col product-col">Product</div>
             <div class="item-col price-col">Price</div>
             <div class="item-col quantity-col">Quantity</div>
+            <div class="item-col status-col">Status</div>
             <div class="item-col subtotal-col">Subtotal</div>
           </div>
 
-          <div class="order-item-row" *ngFor="let item of selectedOrder.items">
-            <div class="item-col product-col">
-              <div class="product-info">
-                <div class="product-image">
-                  <img [src]="item.product.image_url" alt="{{ item.product.name }}">
+          <!-- Group items by seller -->
+          <ng-container *ngFor="let seller of getItemsBySeller(selectedOrder)">
+            <div class="seller-section" *ngIf="seller.items.length > 0">
+              <div class="seller-info">
+                <span>Seller: {{seller.sellerName || 'Unknown Seller'}}</span>
+              </div>
+              
+              <div class="order-item-row" *ngFor="let item of seller.items">
+                <div class="item-col product-col">
+                  <div class="product-info">
+                    <div class="product-image">
+                      <img [src]="item.product.image_url" alt="{{ item.product.name }}">
+                    </div>
+                    <div class="product-details">
+                      <h5>{{ item.product.name }}</h5>
+                    </div>
+                  </div>
                 </div>
-                <div class="product-details">
-                  <h5>{{ item.product.name }}</h5>
+                <div class="item-col price-col">${{ item.price.toFixed(2) }}</div>
+                <div class="item-col quantity-col">{{ item.quantity }}</div>
+                <div class="item-col status-col">
+                  <span [ngClass]="getStatusClass(item.status || selectedOrder.status)">
+                    {{item.status ? orderService.getStatusLabel(item.status) : orderService.getStatusLabel(selectedOrder.status)}}
+                  </span>
                 </div>
+                <div class="item-col subtotal-col">${{ (item.price * item.quantity).toFixed(2) }}</div>
               </div>
             </div>
-            <div class="item-col price-col">${{ item.price.toFixed(2) }}</div>
-            <div class="item-col quantity-col">{{ item.quantity }}</div>
-            <div class="item-col subtotal-col">${{ (item.price * item.quantity).toFixed(2) }}</div>
-          </div>
+          </ng-container>
         </div>
 
         <div class="order-summary total-summary">

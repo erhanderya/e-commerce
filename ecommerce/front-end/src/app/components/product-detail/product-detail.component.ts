@@ -11,11 +11,12 @@ import { OrderService } from '../../services/order.service';
 import { Product } from '../../models/product.model';
 import { Review } from '../../models/review.model';
 import { User } from '../../models/user.model';
+import { Order, OrderItem } from '../../models/order.model';
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.scss']
 })
@@ -34,7 +35,9 @@ export class ProductDetailComponent implements OnInit {
   hasPurchasedProduct: boolean = false;
   checkingPurchaseStatus: boolean = false;
   activeTab: string = 'description';
-  //isAdmin: boolean;
+  purchasedOrders: Order[] = [];
+  loadingOrders: boolean = false;
+  showReturnTab: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -74,6 +77,9 @@ export class ProductDetailComponent implements OnInit {
       }
 
       this.loadProduct(productId);
+      if (this.isLoggedIn) {
+        this.loadOrdersWithProduct(productId);
+      }
     });
   }
 
@@ -322,18 +328,42 @@ export class ProductDetailComponent implements OnInit {
     });
   }
 
-    // Helper method to check if the user is an admin
-    isAdminUser(): boolean {
-        return this.authService.isAdmin();
-    }
+  loadOrdersWithProduct(productId: number): void {
+    this.loadingOrders = true;
+    
+    // Get user orders to check for returnable items
+    this.orderService.getUserOrders().subscribe({
+      next: (orders) => {
+        this.purchasedOrders = orders.filter(order => {
+          // Find orders with this product
+          return order.items.some(item => item.product.id === productId);
+        });
+        
+        // Show the return tab if there are orders with this product
+        this.showReturnTab = this.purchasedOrders.length > 0;
+        this.loadingOrders = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading orders:', err);
+        this.loadingOrders = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
-    // Helper method to check if the current user is the seller of this product
-    isProductSeller(): boolean {
-        if (!this.isLoggedIn || !this.product || !this.product.seller || !this.currentUserId) {
-            return false;
-        }
-        return this.product.seller.id === this.currentUserId;
+  // Helper method to check if the current user is the seller of this product
+  isProductSeller(): boolean {
+    if (!this.isLoggedIn || !this.product || !this.product.seller || !this.currentUserId) {
+      return false;
     }
+    return this.product.seller.id === this.currentUserId;
+  }
+
+  // Helper method to check if user is admin
+  isAdminUser(): boolean {
+    return this.authService.isAdmin();
+  }
 
   // Helper method for star ratings display
   createStarArray(rating: number | undefined): number[] {
@@ -360,5 +390,18 @@ export class ProductDetailComponent implements OnInit {
     }
 
     return stars;
+  }
+
+  // Helper method to get all order items for the current product
+  getOrderItemsForProduct(order: Order): OrderItem[] {
+    if (!this.product || !order.items) return [];
+    return order.items.filter(item => item.product.id === this.product?.id);
+  }
+
+  // Check if an item can be returned
+  canReturnItem(item: OrderItem): boolean {
+    return item && 
+           item.status === 'DELIVERED' && 
+           !item.hasReturnRequest;
   }
 }

@@ -3,14 +3,21 @@ import { Address } from './address.model';
 import { User } from './user.model';
 
 export enum OrderStatus {
+  RECEIVED = 'RECEIVED',   // Order has been received but not yet delivered
+  DELIVERED = 'DELIVERED', // Order has been delivered to the customer
+  CANCELED = 'CANCELED',   // Order has been canceled
+  REFUNDED = 'REFUNDED',   // Order has been refunded
+  RETURNED = 'RETURNED'    // Order has been returned
+}
+
+export enum OrderItemStatus {
   PENDING = 'PENDING',
   PREPARING = 'PREPARING',
-  IN_COUNTRY = 'IN_COUNTRY',
-  IN_CITY = 'IN_CITY',
-  OUT_FOR_DELIVERY = 'OUT_FOR_DELIVERY',
+  SHIPPED = 'SHIPPED',
   DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
-  RETURNED = 'RETURNED'
+  RETURNED = 'RETURNED',
+  RETURN_REQUESTED = 'RETURN_REQUESTED',
+  CANCELLED = 'CANCELED'
 }
 
 export interface OrderItem {
@@ -18,15 +25,22 @@ export interface OrderItem {
   product: Product;
   quantity: number;
   price: number;
+  status?: OrderItemStatus;
+  hasReturnRequest?: boolean;
+  returnRejected?: boolean;
+  rejectionReason?: string;
+  rejectionDate?: Date | string;
+  returnRequests?: ReturnRequest[];
 }
 
 export interface ReturnRequest {
   id?: number;
-  order?: Order;
+  orderItem?: OrderItem;
   reason: string;
   requestDate: Date | string;
   processed: boolean;
   approved: boolean;
+  rejected?: boolean;
   processedDate?: Date | string;
   processorNotes?: string;
 }
@@ -56,6 +70,7 @@ export interface OrderCreationRequest {
 
 export interface ReturnRequestCreation {
   reason: string;
+  orderItemId: number;
 }
 
 export interface ReturnRequestProcess {

@@ -9,9 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Long> {
-    List<ReturnRequest> findByOrderId(Long orderId);
-    List<ReturnRequest> findByOrderUserIdAndProcessed(Long userId, boolean processed);
-    Optional<ReturnRequest> findByOrderIdAndProcessed(Long orderId, boolean processed);
-    boolean existsByOrderIdAndProcessedFalse(Long orderId);
-    boolean existsByOrderId(Long orderId);
+    List<ReturnRequest> findByOrderItemOrderId(Long orderId);
+    List<ReturnRequest> findByOrderItemOrderUserIdAndProcessed(Long userId, boolean processed);
+    Optional<ReturnRequest> findByOrderItemOrderIdAndProcessed(Long orderId, boolean processed);
+    boolean existsByOrderItemOrderIdAndProcessedFalse(Long orderId);
+    boolean existsByOrderItemOrderId(Long orderId);
 } 

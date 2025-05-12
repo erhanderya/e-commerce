@@ -199,7 +199,7 @@ export class SellerDashboardComponent implements OnInit {
       next: (orders) => {
         this.activeOrderCount = orders.filter(order =>
           order.status !== OrderStatus.DELIVERED &&
-          order.status !== OrderStatus.CANCELLED
+          order.status !== OrderStatus.CANCELED
         ).length;
       },
       error: (err) => {

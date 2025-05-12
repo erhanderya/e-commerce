@@ -39,6 +39,13 @@
         (click)="activeTab = 'reviews'">
         Reviews ({{ reviews.length }})
       </button>
+      <button 
+        *ngIf="showReturnTab"
+        class="tab-button" 
+        [class.active]="activeTab === 'returns'"
+        (click)="activeTab = 'returns'">
+        Return Options
+      </button>
     </div>
 
     <!-- Product Description Tab -->
@@ -121,6 +128,64 @@
             </div>
             <button type="submit" [disabled]="reviewForm.invalid">{{ hasReviewed ? 'Update Review' : 'Submit Review' }}</button>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Returns Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'returns'">
+      <div class="returns-section">
+        <h2>Return Options</h2>
+        
+        <!-- If not logged in -->
+        <div *ngIf="!isLoggedIn" class="info-message warning">
+          <p>Please log in to view your return options.</p>
+          <button [routerLink]="['/login']" class="login-btn">Log In</button>
+        </div>
+        
+        <!-- Loading orders -->
+        <div *ngIf="isLoggedIn && loadingOrders" class="info-message">
+          <p>Loading your orders...</p>
+        </div>
+        
+        <!-- No orders found -->
+        <div *ngIf="isLoggedIn && !loadingOrders && purchasedOrders.length === 0" class="info-message warning">
+          <p>You haven't purchased this product yet.</p>
+        </div>
+        
+        <!-- Orders found with this product -->
+        <div *ngIf="isLoggedIn && !loadingOrders && purchasedOrders.length > 0" class="orders-list">
+          <p class="subtitle">Select an order item to request a return:</p>
+          
+          <div *ngFor="let order of purchasedOrders" class="order-card">
+            <div class="order-header">
+              <span>Order #{{ order.id }}</span>
+              <span>{{ order.orderDate | date:'mediumDate' }}</span>
+            </div>
+            
+            <div class="order-items">
+              <div *ngFor="let item of getOrderItemsForProduct(order)" class="order-item">
+                <div class="item-details">
+                  <span class="item-name">{{ item.product.name }}</span>
+                  <span class="item-price">${{ item.price }}</span>
+                  <span class="item-quantity">Qty: {{ item.quantity }}</span>
+                </div>
+                
+                <div class="item-actions">
+                  <span *ngIf="item.hasReturnRequest" class="return-badge">Return Requested</span>
+                  <button 
+                    *ngIf="canReturnItem(item)" 
+                    class="return-btn"
+                    [routerLink]="['/orders', order.id]">
+                    Request Return
+                  </button>
+                  <span *ngIf="!canReturnItem(item) && !item.hasReturnRequest" class="return-note">
+                    Item not eligible for return
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

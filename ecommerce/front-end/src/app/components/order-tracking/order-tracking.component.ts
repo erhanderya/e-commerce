@@ -34,10 +34,11 @@ export class OrderTrackingComponent implements OnInit {
     this.orderService.getUserOrders().subscribe({
       next: (orders) => {
         console.log('Order tracking: Received orders:', orders);
-        // Filter out delivered and cancelled orders
+        // Filter out delivered, canceled, and refunded orders
         this.undeliveredOrders = orders.filter(order => 
           order.status !== OrderStatus.DELIVERED && 
-          order.status !== OrderStatus.CANCELLED
+          order.status !== OrderStatus.CANCELED &&
+          order.status !== OrderStatus.REFUNDED
         );
         console.log('Order tracking: Filtered undelivered orders:', this.undeliveredOrders);
         this.loading = false;

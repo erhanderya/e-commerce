@@ -39,16 +39,66 @@ public class Order {
     @JsonManagedReference
     private List<OrderItem> items;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<ReturnRequest> returnRequests;
-
     private String paymentId;
     
+    @Column(name = "refund_id")
     private String refundId;
-
-    @Column(name = "has_return_request", nullable = true)
+    
+    @Column(name = "has_return_request")
     private Boolean hasReturnRequest = false;
+
+    /**
+     * Updates the order status based on the least significant order item status.
+     * The order status significance from lowest to highest:
+     * RECEIVED -> DELIVERED -> CANCELED -> REFUNDED
+     */
+    public void updateOrderStatus() {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        boolean hasReceivedItem = false;
+        boolean hasDeliveredItem = false;
+        boolean hasCanceledItem = false;
+        boolean hasReturnedItem = false;
+
+        for (OrderItem item : items) {
+            if (item == null) continue;
+            
+            OrderItemStatus itemStatus = item.getStatus();
+            if (itemStatus == null) continue;
+            
+            switch (itemStatus) {
+                case PENDING:
+                case PREPARING:
+                case SHIPPED:
+                    hasReceivedItem = true;
+                    break;
+                case DELIVERED:
+                    hasDeliveredItem = true;
+                    break;
+                case CANCELLED:
+                    hasCanceledItem = true;
+                    break;
+                case RETURNED:
+                case RETURN_REQUESTED:
+                case REFUNDED:
+                    hasReturnedItem = true;
+                    break;
+            }
+        }
+
+        // Assign the least significant status
+        if (hasReceivedItem) {
+            this.status = OrderStatus.RECEIVED;
+        } else if (hasDeliveredItem) {
+            this.status = OrderStatus.DELIVERED;
+        } else if (hasCanceledItem) {
+            this.status = OrderStatus.CANCELED;
+        } else if (hasReturnedItem) {
+            this.status = OrderStatus.RETURNED;
+        }
+    }
 
     public void setPaymentId(String paymentId) {
         this.paymentId = paymentId;
@@ -64,6 +114,14 @@ public class Order {
 
     public String getRefundId() {
         return refundId;
+    }
+    
+    public Boolean getHasReturnRequest() {
+        return hasReturnRequest;
+    }
+
+    public void setHasReturnRequest(Boolean hasReturnRequest) {
+        this.hasReturnRequest = hasReturnRequest != null ? hasReturnRequest : false;
     }
 
     public void setTotalAmount(BigDecimal totalAmount) {
@@ -120,21 +178,5 @@ public class Order {
 
     public Long getId() {
         return id;
-    }
-
-    public List<ReturnRequest> getReturnRequests() {
-        return returnRequests;
-    }
-    
-    public void setReturnRequests(List<ReturnRequest> returnRequests) {
-        this.returnRequests = returnRequests;
-    }
-
-    public Boolean getHasReturnRequest() {
-        return hasReturnRequest;
-    }
-    
-    public void setHasReturnRequest(Boolean hasReturnRequest) {
-        this.hasReturnRequest = hasReturnRequest != null ? hasReturnRequest : false;
     }
 }
