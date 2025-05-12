@@ -35,6 +35,47 @@
   </aside>
 
   <div class="product-list-content">
+    <!-- Fixed Image Slider -->
+    <div class="slider-container">
+      <div class="slider">
+        <div class="slide" [style.display]="currentSlide === 0 ? 'block' : 'none'">
+          <img src="https://picsum.photos/seed/slide1/1200/400" alt="New Arrivals">
+          <div class="slide-content">
+            <h2>{{slides[0].title}}</h2>
+            <p>{{slides[0].description}}</p>
+           
+          </div>
+        </div>
+        <div class="slide" [style.display]="currentSlide === 1 ? 'block' : 'none'">
+          <img src="https://picsum.photos/seed/slide2/1200/400" alt="Summer Collection">
+          <div class="slide-content">
+            <h2>{{slides[1].title}}</h2>
+            <p>{{slides[1].description}}</p>
+            
+          </div>
+        </div>
+        <div class="slide" [style.display]="currentSlide === 2 ? 'block' : 'none'">
+          <img src="https://picsum.photos/seed/slide3/1200/400" alt="Best Sellers">
+          <div class="slide-content">
+            <h2>{{slides[2].title}}</h2>
+            <p>{{slides[2].description}}</p>
+       
+          </div>
+        </div>
+      </div>
+      <button class="slider-nav prev" (click)="prevSlide()">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="slider-nav next" (click)="nextSlide()">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <div class="slider-dots">
+        <span [class.active]="currentSlide === 0" (click)="goToSlide(0)"></span>
+        <span [class.active]="currentSlide === 1" (click)="goToSlide(1)"></span>
+        <span [class.active]="currentSlide === 2" (click)="goToSlide(2)"></span>
+      </div>
+    </div>
+
     <div class="product-header">
       <h2>Products</h2>
       <div class="product-filters">
